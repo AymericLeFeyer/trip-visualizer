@@ -1,0 +1,14 @@
+services:
+  trip-visualizer:
+    build: .
+    container_name: trip-visualizer
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      # Persistance de la bdd SQLite sur l'hôte (homelab)
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DATABASE_PATH=/app/data/trips.db
