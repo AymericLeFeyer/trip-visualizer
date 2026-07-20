@@ -10,7 +10,7 @@ RUN npm run build
 FROM node:24-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-ENV PORT=3001
+ENV PORT=42069
 ENV DATABASE_PATH=/app/data/trips.db
 
 # node_modules (dont better-sqlite3 compilé et tsx) + build + sources serveur
@@ -23,6 +23,6 @@ COPY --from=build /app/tsconfig*.json ./
 
 RUN mkdir -p /app/data
 VOLUME ["/app/data"]
-EXPOSE 3001
+EXPOSE 42069
 
 CMD ["npm", "start"]

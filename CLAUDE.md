@@ -16,7 +16,7 @@ App web pour visualiser un voyage (Japon) sur une carte : étapes ordonnées (nu
 
 ## Commandes
 
-- `npm run dev` : Vite (5173) + serveur tsx watch (3001) via `concurrently`. Proxy `/api` → 3001.
+- `npm run dev` : Vite (5173) + serveur tsx watch (42069) via `concurrently`. Proxy `/api` → 42069.
 - `npm run build` : `tsc -b` (3 sous-projets) + `vite build` → `dist/`
 - `npm start` : `NODE_ENV=production tsx server/index.ts` (sert `dist/` + API)
 - `docker compose up -d --build` : homelab, bdd persistée dans `./data`

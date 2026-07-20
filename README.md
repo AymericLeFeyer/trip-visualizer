@@ -13,16 +13,16 @@ Visualise et personnalise un voyage sur une carte interactive : des **étapes** 
 
 ```bash
 npm install
-npm run dev          # front (5173) + back (3001) en parallèle
+npm run dev          # front (5173) + back (42069) en parallèle
 ```
 
-Le front proxifie `/api` vers `http://localhost:3001`. Ouvre http://localhost:5173.
+Le front proxifie `/api` vers `http://localhost:42069`. Ouvre http://localhost:5173.
 
 ## Production
 
 ```bash
 npm run build        # build le front dans dist/
-npm start            # sert dist/ + l'API sur le PORT (défaut 3001)
+npm start            # sert dist/ + l'API sur le PORT (défaut 42069)
 ```
 
 ## Docker (homelab)
@@ -31,7 +31,7 @@ npm start            # sert dist/ + l'API sur le PORT (défaut 3001)
 docker compose up -d --build
 ```
 
-La bdd SQLite est persistée dans `./data` (volume). Accessible sur le port `3001`.
+La bdd SQLite est persistée dans `./data` (volume). Accessible sur le port `42069`.
 
 ## Variables d'environnement
 
