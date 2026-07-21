@@ -3,6 +3,7 @@ import type { LatLng } from '@shared/types/trip';
 import type { GeoSuggestion } from '@/infrastructure/geocoding/nominatim';
 import { cn } from '@/shared/lib/cn';
 import { AddressAutocomplete } from '../AddressAutocomplete';
+import { MapsSearchButton } from '../details/parts';
 import { Button } from '../ui/Button';
 import { Field } from '../ui/Field';
 import { Input } from '../ui/Input';
@@ -55,6 +56,8 @@ export function LocationField({
           </span>
         )}
       </div>
+
+      <MapsSearchButton query={address} />
 
       <Field label="Lien Google Maps">
         <div className="flex items-center gap-1.5">

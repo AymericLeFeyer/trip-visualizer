@@ -1,35 +1,69 @@
 import { Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Cloud, CloudOff, Loader2, Plus, Share2, Train } from 'lucide-react';
-import type { Stage, Trip } from '@shared/types/trip';
+import { Check, Cloud, CloudOff, Loader2, Plus, Share2 } from 'lucide-react';
+import type { Flight, Trip } from '@shared/types/trip';
 import { TRANSPORT_MODES } from '@/shared/constants/catalog';
 import { createStage, createTransport } from '@/domain/trip/services/tripFactory';
 import { addStage, patchTrip, setTransportLeg } from '@/domain/trip/services/tripMutations';
+import type { FlightSide } from '@/domain/trip/services/tripMutations';
+import { formatTransportSummary } from '@/shared/lib/transport';
 import type { SaveStatus } from '@/presentation/hooks/useTrip';
 import type { Selection } from '@/presentation/types';
 import { cn } from '@/shared/lib/cn';
 import { Button } from '../ui/Button';
+import { AdminLock } from '../AdminLock';
 import { ThemeToggle } from '../ThemeToggle';
 
 interface SidebarProps {
   trip: Trip;
   selection: Selection;
   saveStatus: SaveStatus;
+  isAdmin: boolean;
   mutate: (updater: (trip: Trip) => Trip) => void;
   onSelectStage: (stageId: string) => void;
   onSelectLeg: (stageId: string) => void;
-  onSelectTransports: () => void;
+  onSelectFlight: (side: FlightSide) => void;
 }
 
-function legSummary(stage: Stage): string {
-  const leg = stage.transportToNext;
-  if (!leg) return '';
-  const parts: string[] = [];
-  if (leg.departureTime || leg.arrivalTime) {
-    parts.push([leg.departureTime, leg.arrivalTime].filter(Boolean).join('–'));
-  }
-  if (leg.price != null) parts.push(`${leg.price}${leg.currency ?? '¥'}`);
-  return parts.join(' · ');
+/** Entrée « Vol aller / retour », rendue comme une étape bout de voyage. */
+function FlightRow({
+  side,
+  flight,
+  active,
+  isAdmin,
+  onSelect,
+}: {
+  side: FlightSide;
+  flight?: Flight;
+  active: boolean;
+  isAdmin: boolean;
+  onSelect: (side: FlightSide) => void;
+}) {
+  if (!flight && !isAdmin) return null;
+  const label = side === 'outbound' ? 'Vol aller' : 'Vol retour';
+  return (
+    <button
+      onClick={() => onSelect(side)}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors',
+        active
+          ? 'border-primary bg-primary/5'
+          : flight
+            ? 'border-border hover:bg-muted'
+            : 'border-dashed border-border text-muted-foreground hover:bg-muted',
+      )}
+    >
+      <span className="text-lg">✈️</span>
+      <div className="min-w-0 flex-1">
+        <div className="font-medium">{label}</div>
+        {flight?.airport ? (
+          <div className="truncate text-xs text-muted-foreground">{flight.airport}</div>
+        ) : (
+          isAdmin && <div className="text-xs text-muted-foreground">Ajouter</div>
+        )}
+      </div>
+    </button>
+  );
 }
 
 function SaveIndicator({ status }: { status: SaveStatus }) {
@@ -51,10 +85,11 @@ export function Sidebar({
   trip,
   selection,
   saveStatus,
+  isAdmin,
   mutate,
   onSelectStage,
   onSelectLeg,
-  onSelectTransports,
+  onSelectFlight,
 }: SidebarProps) {
   const [copied, setCopied] = useState(false);
 
@@ -87,23 +122,35 @@ export function Sidebar({
             ← Mes voyages
           </Link>
           <div className="flex items-center gap-1">
-            <SaveIndicator status={saveStatus} />
+            {isAdmin && <SaveIndicator status={saveStatus} />}
+            <AdminLock />
             <ThemeToggle />
           </div>
         </div>
-        <input
-          value={trip.title}
-          onChange={(e) => mutate((t) => patchTrip(t, { title: e.target.value }))}
-          className="w-full bg-transparent text-lg font-bold outline-none focus:ring-0"
-          placeholder="Titre du voyage"
-        />
-        <textarea
-          value={trip.description ?? ''}
-          onChange={(e) => mutate((t) => patchTrip(t, { description: e.target.value }))}
-          placeholder="Description…"
-          rows={2}
-          className="w-full resize-none bg-transparent text-sm text-muted-foreground outline-none"
-        />
+        {isAdmin ? (
+          <>
+            <input
+              value={trip.title}
+              onChange={(e) => mutate((t) => patchTrip(t, { title: e.target.value }))}
+              className="w-full bg-transparent text-lg font-bold outline-none focus:ring-0"
+              placeholder="Titre du voyage"
+            />
+            <textarea
+              value={trip.description ?? ''}
+              onChange={(e) => mutate((t) => patchTrip(t, { description: e.target.value }))}
+              placeholder="Description…"
+              rows={2}
+              className="w-full resize-none bg-transparent text-sm text-muted-foreground outline-none"
+            />
+          </>
+        ) : (
+          <>
+            <h1 className="text-lg font-bold">{trip.title}</h1>
+            {trip.description && (
+              <p className="text-sm text-muted-foreground">{trip.description}</p>
+            )}
+          </>
+        )}
         <Button variant="secondary" size="sm" className="w-full" onClick={handleShare}>
           {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
           {copied ? 'Lien copié !' : 'Partager le lien'}
@@ -111,17 +158,27 @@ export function Sidebar({
       </div>
 
       <div className="flex-1 space-y-2 overflow-y-auto p-3 scroll-thin">
+        <FlightRow
+          side="outbound"
+          flight={trip.outboundFlight}
+          active={selection?.kind === 'flight' && selection.side === 'outbound'}
+          isAdmin={isAdmin}
+          onSelect={onSelectFlight}
+        />
+
         <div className="flex items-center justify-between px-1">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Étapes
           </h2>
-          <button
-            onClick={handleAddStage}
-            className="text-muted-foreground hover:text-foreground"
-            title="Ajouter une étape"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
+          {isAdmin && (
+            <button
+              onClick={handleAddStage}
+              className="text-muted-foreground hover:text-foreground"
+              title="Ajouter une étape"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {trip.stages.map((stage, index) => {
@@ -142,7 +199,7 @@ export function Sidebar({
                   className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
                   style={{ background: stage.color }}
                 >
-                  {index + 1}
+                  {stage.emoji ?? index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{stage.name}</div>
@@ -171,17 +228,17 @@ export function Sidebar({
                     >
                       <span>{TRANSPORT_MODES[leg.mode].emoji}</span>
                       <span className="truncate text-muted-foreground">
-                        {legSummary(stage) || TRANSPORT_MODES[leg.mode].label}
+                        {formatTransportSummary(leg) || TRANSPORT_MODES[leg.mode].label}
                       </span>
                     </button>
-                  ) : (
+                  ) : isAdmin ? (
                     <button
                       onClick={() => handleAddLeg(stage.id)}
                       className="flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted"
                     >
                       <Plus className="h-3 w-3" /> transport
                     </button>
-                  )}
+                  ) : null}
                 </div>
               )}
             </Fragment>
@@ -190,25 +247,17 @@ export function Sidebar({
 
         {trip.stages.length === 0 && (
           <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
-            Aucune étape. Ajoute ta première étape.
+            {isAdmin ? 'Aucune étape. Ajoute ta première étape.' : 'Aucune étape pour ce voyage.'}
           </p>
         )}
-      </div>
 
-      <div className="border-t border-border p-3">
-        <button
-          onClick={onSelectTransports}
-          className={cn(
-            'flex w-full items-center gap-2 rounded-lg border p-3 text-left text-sm font-medium transition-colors',
-            selection?.kind === 'transports'
-              ? 'border-primary bg-primary/5'
-              : 'border-border hover:bg-muted',
-          )}
-        >
-          <Train className="h-4 w-4 text-primary" />
-          Transports & trains
-          <span className="ml-auto text-xs text-muted-foreground">{trip.transports.length}</span>
-        </button>
+        <FlightRow
+          side="return"
+          flight={trip.returnFlight}
+          active={selection?.kind === 'flight' && selection.side === 'return'}
+          isAdmin={isAdmin}
+          onSelect={onSelectFlight}
+        />
       </div>
     </aside>
   );

@@ -1,0 +1,150 @@
+import type { LatLng, Trip } from '@shared/types/trip';
+import type { PlacingTarget, Selection } from '@/presentation/types';
+import { Modal } from '../ui/Modal';
+import { StageDetail } from '../details/StageDetail';
+import { PlaceDetail } from '../details/PlaceDetail';
+import { LegDetail } from '../details/LegDetail';
+import { FlightDetail } from '../details/FlightDetail';
+import { PlaceEditor } from './PlaceEditor';
+import { StageEditor } from './StageEditor';
+import { TransportLegEditor } from './TransportLegEditor';
+import { FlightEditor } from './FlightEditor';
+
+interface DetailModalProps {
+  trip: Trip;
+  selection: Selection;
+  isAdmin: boolean;
+  placingTarget: PlacingTarget;
+  mutate: (updater: (trip: Trip) => Trip) => void;
+  setPlacingTarget: (target: PlacingTarget) => void;
+  onSelectStage: (stageId: string) => void;
+  onSelectPlace: (stageId: string, placeId: string) => void;
+  onFocus: (location: LatLng) => void;
+  onClose: () => void;
+}
+
+function midpoint(a: LatLng, b: LatLng): LatLng {
+  return { lat: (a.lat + b.lat) / 2, lng: (a.lng + b.lng) / 2 };
+}
+
+/**
+ * Modale de détail/édition (remplace l'ancien panneau latéral).
+ * - Admin → éditeurs (formulaires).
+ * - Visualisation → vues lecture seule.
+ * Se masque pendant un placement sur carte, puis réapparaît.
+ */
+export function DetailModal({
+  trip,
+  selection,
+  isAdmin,
+  placingTarget,
+  mutate,
+  setPlacingTarget,
+  onSelectStage,
+  onSelectPlace,
+  onFocus,
+  onClose,
+}: DetailModalProps) {
+  const focusHandler = (location?: LatLng) => (location ? () => onFocus(location) : undefined);
+  // Masquée tant qu'on place un point sur la carte (mais la sélection est conservée).
+  const open = selection !== null && placingTarget === null;
+  // Étape (édition ou lecture) = 2 colonnes sur desktop → modale large (~70 % écran).
+  const wide = selection?.kind === 'stage';
+
+  const renderContent = () => {
+    if (!selection) return null;
+
+    if (selection.kind === 'flight') {
+      const flight = selection.side === 'outbound' ? trip.outboundFlight : trip.returnFlight;
+      if (!flight) return null;
+      const focus = focusHandler(flight.airportLocation);
+      return isAdmin ? (
+        <FlightEditor
+          side={selection.side}
+          flight={flight}
+          placingTarget={placingTarget}
+          mutate={mutate}
+          setPlacingTarget={setPlacingTarget}
+          onFocus={focus}
+          onClose={onClose}
+        />
+      ) : (
+        <FlightDetail side={selection.side} flight={flight} onFocus={focus} onClose={onClose} />
+      );
+    }
+
+    if (selection.kind === 'leg') {
+      const index = trip.stages.findIndex((s) => s.id === selection.stageId);
+      const stage = trip.stages[index];
+      if (!stage || !stage.transportToNext) return null;
+      const nextStage = trip.stages[index + 1];
+      const from = stage.accommodation?.location;
+      const to = nextStage?.accommodation?.location;
+      const focus = focusHandler(from && to ? midpoint(from, to) : undefined);
+      return isAdmin ? (
+        <TransportLegEditor
+          trip={trip}
+          stageId={selection.stageId}
+          mutate={mutate}
+          onFocus={focus}
+          onClose={onClose}
+        />
+      ) : (
+        <LegDetail stage={stage} nextStage={nextStage} onFocus={focus} onClose={onClose} />
+      );
+    }
+
+    if (selection.kind === 'stage') {
+      const stage = trip.stages.find((s) => s.id === selection.stageId);
+      if (!stage) return null;
+      const focus = focusHandler(stage.accommodation?.location);
+      return isAdmin ? (
+        <StageEditor
+          trip={trip}
+          stage={stage}
+          placingTarget={placingTarget}
+          mutate={mutate}
+          setPlacingTarget={setPlacingTarget}
+          onSelectPlace={onSelectPlace}
+          onFocus={focus}
+          onClose={onClose}
+        />
+      ) : (
+        <StageDetail
+          trip={trip}
+          stage={stage}
+          onSelectPlace={(placeId) => onSelectPlace(stage.id, placeId)}
+          onFocus={focus}
+          onClose={onClose}
+        />
+      );
+    }
+
+    // selection.kind === 'place'
+    const stage = trip.stages.find((s) => s.id === selection.stageId);
+    const place = stage?.places.find((p) => p.id === selection.placeId);
+    if (!stage || !place) return null;
+    const focus = focusHandler(place.location);
+    return isAdmin ? (
+      <PlaceEditor
+        trip={trip}
+        stageId={stage.id}
+        place={place}
+        placingTarget={placingTarget}
+        mutate={mutate}
+        setPlacingTarget={setPlacingTarget}
+        onBackToStage={onSelectStage}
+        onFocus={focus}
+        onClose={onClose}
+      />
+    ) : (
+      <PlaceDetail stage={stage} place={place} onFocus={focus} onClose={onClose} />
+    );
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} className={wide ? 'w-[92vw] md:w-[70vw]' : undefined}>
+      {renderContent()}
+    </Modal>
+  );
+}

@@ -8,6 +8,7 @@ import { Field } from '../ui/Field';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
+import { FocusButton } from '../details/parts';
 import { LocationField } from './LocationField';
 
 interface PlaceEditorProps {
@@ -18,6 +19,7 @@ interface PlaceEditorProps {
   mutate: (updater: (trip: Trip) => Trip) => void;
   setPlacingTarget: (target: PlacingTarget) => void;
   onBackToStage: (stageId: string) => void;
+  onFocus?: () => void;
   onClose: () => void;
 }
 
@@ -29,6 +31,7 @@ export function PlaceEditor({
   mutate,
   setPlacingTarget,
   onBackToStage,
+  onFocus,
   onClose,
 }: PlaceEditorProps) {
   const stage = trip.stages.find((s) => s.id === stageId);
@@ -40,8 +43,8 @@ export function PlaceEditor({
   const patch = (p: Partial<Place>) => mutate((t) => updatePlace(t, stageId, place.id, p));
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex items-center justify-between border-b border-border px-4 py-3">
+    <div className="flex min-h-0 flex-col">
+      <header className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
         <button
           type="button"
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -50,12 +53,15 @@ export function PlaceEditor({
           <ArrowLeft className="h-4 w-4" />
           {stage?.name ?? 'Étape'}
         </button>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {onFocus && <FocusButton onClick={onFocus} />}
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </header>
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-4 scroll-thin">
+      <div className="flex-1 min-h-0 space-y-4 overflow-y-auto p-4 scroll-thin">
         <Field label="Nom du lieu">
           <Input value={place.name} onChange={(e) => patch({ name: e.target.value })} />
         </Field>

@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronUp, MapPin, Plus, Trash2, X } from 'lucide-react';
 import type { Stage, Trip } from '@shared/types/trip';
-import { PLACE_CATEGORIES, STAGE_COLORS } from '@/shared/constants/catalog';
+import { PLACE_CATEGORIES, STAGE_COLORS, STAGE_EMOJIS } from '@/shared/constants/catalog';
 import { createPlace } from '@/domain/trip/services/tripFactory';
 import {
   addPlace,
@@ -17,6 +17,7 @@ import { Button } from '../ui/Button';
 import { Field } from '../ui/Field';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
+import { FocusButton } from '../details/parts';
 import { LocationField } from './LocationField';
 
 interface StageEditorProps {
@@ -26,6 +27,7 @@ interface StageEditorProps {
   mutate: (updater: (trip: Trip) => Trip) => void;
   setPlacingTarget: (target: PlacingTarget) => void;
   onSelectPlace: (stageId: string, placeId: string) => void;
+  onFocus?: () => void;
   onClose: () => void;
 }
 
@@ -36,6 +38,7 @@ export function StageEditor({
   mutate,
   setPlacingTarget,
   onSelectPlace,
+  onFocus,
   onClose,
 }: StageEditorProps) {
   const acc = stage.accommodation;
@@ -49,8 +52,8 @@ export function StageEditor({
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex items-center justify-between border-b border-border px-4 py-3">
+    <div className="flex min-h-0 flex-col">
+      <header className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
           <span
             className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white"
@@ -77,13 +80,17 @@ export function StageEditor({
           >
             <ChevronDown className="h-4 w-4" />
           </Button>
+          {onFocus && <FocusButton onClick={onFocus} />}
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
         </div>
       </header>
 
-      <div className="flex-1 space-y-5 overflow-y-auto p-4 scroll-thin">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 scroll-thin">
+        <div className="grid gap-x-8 gap-y-5 md:grid-cols-2 md:items-start">
+          {/* Colonne gauche : détails & hébergement */}
+          <div className="space-y-5">
         <Field label="Nom de l'étape">
           <Input
             value={stage.name}
@@ -105,6 +112,35 @@ export function StageEditor({
                 onClick={() => mutate((t) => updateStage(t, stage.id, { color }))}
               />
             ))}
+          </div>
+        </Field>
+
+        <Field label="Emoji (marqueur)">
+          <div className="flex items-center gap-2">
+            <Input
+              value={stage.emoji ?? ''}
+              maxLength={4}
+              placeholder="🏙️"
+              className="w-16 text-center text-lg"
+              onChange={(e) =>
+                mutate((t) => updateStage(t, stage.id, { emoji: e.target.value || undefined }))
+              }
+            />
+            <div className="flex flex-wrap gap-1">
+              {STAGE_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className={cn(
+                    'flex h-8 w-8 items-center justify-center rounded-md border text-lg transition-colors hover:bg-muted',
+                    stage.emoji === emoji ? 'border-primary bg-primary/5' : 'border-border',
+                  )}
+                  onClick={() => mutate((t) => updateStage(t, stage.id, { emoji }))}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
           </div>
         </Field>
 
@@ -203,7 +239,10 @@ export function StageEditor({
             />
           </Field>
         </section>
+          </div>
 
+          {/* Colonne droite : lieux, notes, suppression */}
+          <div className="space-y-5">
         {/* --- Lieux à visiter --- */}
         <section className="space-y-2">
           <div className="flex items-center justify-between">
@@ -275,6 +314,8 @@ export function StageEditor({
         >
           <Trash2 className="h-4 w-4" /> Supprimer l'étape
         </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

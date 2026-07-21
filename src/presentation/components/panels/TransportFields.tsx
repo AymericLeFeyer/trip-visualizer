@@ -1,5 +1,8 @@
-import type { Transport, TransportMode } from '@shared/types/trip';
+import { Calculator } from 'lucide-react';
+import type { LatLng, Transport, TransportMode } from '@shared/types/trip';
 import { CURRENCIES, TRANSPORT_MODES } from '@/shared/constants/catalog';
+import { haversineKm } from '@/shared/lib/geo';
+import { Button } from '../ui/Button';
 import { Field } from '../ui/Field';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
@@ -10,9 +13,13 @@ interface TransportFieldsProps {
   onPatch: (patch: Partial<Transport>) => void;
   /** Masque l'intitulé libre (jambe entre étapes où from/to suffisent). */
   hideLabel?: boolean;
+  /** Extrémités géolocalisées : active le calcul auto de la distance. */
+  from?: LatLng;
+  to?: LatLng;
 }
 
-export function TransportFields({ transport, onPatch, hideLabel }: TransportFieldsProps) {
+export function TransportFields({ transport, onPatch, hideLabel, from, to }: TransportFieldsProps) {
+  const canCompute = Boolean(from && to);
   return (
     <div className="space-y-3">
       <Field label="Moyen de transport">
@@ -80,6 +87,31 @@ export function TransportFields({ transport, onPatch, hideLabel }: TransportFiel
             value={transport.arrivalTime ?? ''}
             onChange={(e) => onPatch({ arrivalTime: e.target.value })}
           />
+        </Field>
+        <Field label="Distance (km)">
+          <div className="flex items-center gap-1.5">
+            <Input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              value={transport.distanceKm ?? ''}
+              placeholder="0"
+              onChange={(e) =>
+                onPatch({ distanceKm: e.target.value === '' ? undefined : Number(e.target.value) })
+              }
+            />
+            {canCompute && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon"
+                title="Calculer la distance à vol d'oiseau entre les deux points"
+                onClick={() => onPatch({ distanceKm: Math.round(haversineKm(from!, to!)) })}
+              >
+                <Calculator className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </Field>
       </div>
 

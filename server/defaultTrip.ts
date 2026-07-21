@@ -6,6 +6,38 @@ export function buildDefaultTrip(): TripInput {
   return {
     title: 'Voyage au Japon',
     description: 'Itinéraire à personnaliser — clique sur une étape ou un lieu pour éditer.',
+    outboundFlight: {
+      airport: 'Aéroport de Tokyo Narita',
+      airportLocation: { lat: 35.772, lng: 140.3929 },
+      date: '',
+      legs: [
+        {
+          id: nanoid(8),
+          flightNumber: 'AF276',
+          from: 'Paris CDG',
+          to: 'Tokyo Narita',
+          departureTime: '13:30',
+          arrivalTime: '08:55',
+        },
+      ],
+      currency: '€',
+    },
+    returnFlight: {
+      airport: 'Aéroport d\'Osaka Kansai',
+      airportLocation: { lat: 34.4342, lng: 135.244 },
+      date: '',
+      legs: [
+        {
+          id: nanoid(8),
+          flightNumber: 'AF291',
+          from: 'Osaka Kansai',
+          to: 'Paris CDG',
+          departureTime: '11:25',
+          arrivalTime: '16:55',
+        },
+      ],
+      currency: '€',
+    },
     stages: [
       {
         id: nanoid(8),
@@ -68,6 +100,5 @@ export function buildDefaultTrip(): TripInput {
         ],
       },
     ],
-    transports: [],
   };
 }

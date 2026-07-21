@@ -1,4 +1,4 @@
-import type { Place, Stage, Transport } from '@shared/types/trip';
+import type { Flight, FlightLeg, Place, Stage, Transport } from '@shared/types/trip';
 import { STAGE_COLORS } from '@/shared/constants/catalog';
 import { newId } from '@/shared/lib/id';
 
@@ -26,4 +26,12 @@ export function createTransport(): Transport {
     mode: 'train',
     label: 'Nouveau trajet',
   };
+}
+
+export function createFlightLeg(): FlightLeg {
+  return { id: newId() };
+}
+
+export function createFlight(): Flight {
+  return { legs: [createFlightLeg()], currency: '€' };
 }

@@ -1,49 +1,74 @@
-import { cn } from '@/shared/lib/cn';
-
-/** Gros marqueur numéroté d'une étape (là où l'on dort). */
+/** Gros marqueur d'une étape (là où l'on dort) : emoji si défini, sinon le numéro. */
 export function StagePin({
   order,
   color,
+  emoji,
   selected,
 }: {
   order: number;
   color: string;
+  emoji?: string;
   selected: boolean;
 }) {
   return (
-    <div
-      className="marker-stage__pin"
-      style={{
-        background: color,
-        boxShadow: selected
-          ? '0 0 0 4px rgba(59,130,246,0.35),0 2px 6px rgba(0,0,0,0.35)'
-          : undefined,
-      }}
-    >
-      {order}
+    <div className="marker-stage__wrap">
+      <div
+        className="marker-stage__pin"
+        style={{
+          background: color,
+          boxShadow: selected
+            ? '0 0 0 4px rgba(59,130,246,0.35),0 2px 6px rgba(0,0,0,0.35)'
+            : undefined,
+        }}
+      >
+        {emoji ? <span className="marker-stage__emoji">{emoji}</span> : order}
+      </div>
+      {/* Quand un emoji occupe le rond, on garde l'ordre dans un badge. */}
+      {emoji && (
+        <span className="marker-stage__badge" style={{ background: color }}>
+          {order}
+        </span>
+      )}
     </div>
   );
 }
 
-/** Petit marqueur d'un lieu satellite. */
+/** Petit marqueur d'un lieu satellite : emoji de sa catégorie dans une pastille. */
 export function PlacePin({
   color,
+  emoji,
   visited,
   selected,
 }: {
   color: string;
+  emoji: string;
   visited: boolean;
   selected: boolean;
 }) {
   return (
     <div
-      className={cn('marker-place__dot', visited && 'marker-place__dot--visited')}
+      className="marker-place__emoji"
       style={{
-        background: color,
-        boxShadow: selected ? '0 0 0 3px rgba(59,130,246,0.4)' : undefined,
-        transform: selected ? 'scale(1.25)' : undefined,
+        borderColor: color,
+        opacity: visited ? 0.5 : 1,
+        boxShadow: selected ? '0 0 0 3px rgba(59,130,246,0.45)' : undefined,
+        transform: selected ? 'scale(1.2)' : undefined,
       }}
-    />
+    >
+      {emoji}
+    </div>
+  );
+}
+
+/** Marqueur d'aéroport (vol aller/retour), affiché au bout du voyage. */
+export function FlightPin({ selected }: { selected: boolean }) {
+  return (
+    <div
+      className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-white text-base shadow-md"
+      style={{ boxShadow: selected ? '0 0 0 3px rgba(59,130,246,0.45)' : undefined }}
+    >
+      ✈️
+    </div>
   );
 }
 

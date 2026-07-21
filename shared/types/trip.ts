@@ -55,6 +55,8 @@ export interface Stage {
   name: string;
   /** Couleur d'accent de l'étape (hex). */
   color: string;
+  /** Emoji illustrant l'étape (affiché dans le marqueur, sinon le numéro). */
+  emoji?: string;
   accommodation?: Accommodation;
   places: Place[];
   /** Transport vers l'étape suivante (jambe de trajet). */
@@ -75,6 +77,8 @@ export interface Transport {
   date?: string;
   departureTime?: string;
   arrivalTime?: string;
+  /** Distance du trajet en kilomètres. */
+  distanceKm?: number;
   /** N° de train / de réservation / voie. */
   reference?: string;
   /** Prix à prévoir. */
@@ -84,12 +88,43 @@ export interface Transport {
   notes?: string;
 }
 
+/** Segment d'un vol (une correspondance = un segment supplémentaire). */
+export interface FlightLeg {
+  id: string;
+  /** Numéro de vol (ex. AF276). */
+  flightNumber?: string;
+  from?: string;
+  to?: string;
+  departureTime?: string;
+  arrivalTime?: string;
+}
+
+/**
+ * Vol d'aller ou de retour, traité comme une étape « bout de voyage ».
+ * `airport`/`airportLocation` = l'aéroport du pays visité affiché sur la carte
+ * (arrivée pour l'aller, départ pour le retour).
+ */
+export interface Flight {
+  airport?: string;
+  airportLocation?: LatLng;
+  /** Date (YYYY-MM-DD). */
+  date?: string;
+  /** Segments dans l'ordre (≥ 2 = avec correspondance(s)). */
+  legs: FlightLeg[];
+  price?: number;
+  currency?: string;
+  notes?: string;
+}
+
 export interface Trip {
   id: string;
   title: string;
   description?: string;
+  /** Vol d'aller (avant la première étape). */
+  outboundFlight?: Flight;
   stages: Stage[];
-  transports: Transport[];
+  /** Vol de retour (après la dernière étape). */
+  returnFlight?: Flight;
   createdAt: string;
   updatedAt: string;
 }

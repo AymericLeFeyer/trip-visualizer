@@ -21,6 +21,22 @@ export const TRANSPORT_MODES: Record<TransportMode, { label: string; emoji: stri
   other: { label: 'Autre', emoji: '➡️' },
 };
 
+/** Emojis suggérés pour illustrer une étape (cliquables dans l'éditeur). */
+export const STAGE_EMOJIS = [
+  '🏙️',
+  '⛩️',
+  '🏯',
+  '🏔️',
+  '🌸',
+  '🗼',
+  '🏝️',
+  '♨️',
+  '🦌',
+  '🍜',
+  '🎎',
+  '🌊',
+];
+
 /** Devises proposées (le Japon d'abord). */
 export const CURRENCIES = ['¥', '€', '$', '£'];
 

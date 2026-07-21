@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import Map, { Layer, Marker, Source, type MapRef } from 'react-map-gl/maplibre';
 import type { FeatureCollection, LineString } from 'geojson';
 import type { LatLng, Trip } from '@shared/types/trip';
-import { TRANSPORT_MODES } from '@/shared/constants/catalog';
+import { PLACE_CATEGORIES, TRANSPORT_MODES } from '@/shared/constants/catalog';
+import type { FlightSide } from '@/domain/trip/services/tripMutations';
 import { useTheme } from '@/presentation/theme/ThemeProvider';
-import { LegPin, PlacePin, StagePin } from './pins';
+import { FlightPin, LegPin, PlacePin, StagePin } from './pins';
 import { applyMapLanguage, MAP_STYLE_URLS } from './mapStyle';
 
 interface TripMapProps {
@@ -12,10 +13,18 @@ interface TripMapProps {
   selectedStageId: string | null;
   selectedPlaceId: string | null;
   selectedLegStageId: string | null;
+  selectedFlight: FlightSide | null;
   placingMode: boolean;
+  /**
+   * Demande de recadrage : la carte vole vers `location` à chaque nouveau `nonce`.
+   * `bottomInset` (px) réserve un espace bas (hauteur du bottom sheet mobile) pour
+   * que le point ne soit pas masqué.
+   */
+  focusTarget?: { location: LatLng; nonce: number; bottomInset?: number } | null;
   onSelectStage: (stageId: string) => void;
   onSelectPlace: (stageId: string, placeId: string) => void;
   onSelectLeg: (stageId: string) => void;
+  onSelectFlight: (side: FlightSide) => void;
   onMapClick: (location: LatLng) => void;
 }
 
@@ -23,12 +32,14 @@ const JAPAN_VIEW = { longitude: 138.2529, latitude: 36.2048, zoom: 5 };
 
 function collectPoints(trip: Trip): LatLng[] {
   const points: LatLng[] = [];
+  if (trip.outboundFlight?.airportLocation) points.push(trip.outboundFlight.airportLocation);
   for (const stage of trip.stages) {
     if (stage.accommodation?.location) points.push(stage.accommodation.location);
     for (const place of stage.places) {
       if (place.location) points.push(place.location);
     }
   }
+  if (trip.returnFlight?.airportLocation) points.push(trip.returnFlight.airportLocation);
   return points;
 }
 
@@ -41,20 +52,27 @@ export function TripMap({
   selectedStageId,
   selectedPlaceId,
   selectedLegStageId,
+  selectedFlight,
   placingMode,
+  focusTarget,
   onSelectStage,
   onSelectPlace,
   onSelectLeg,
+  onSelectFlight,
   onMapClick,
 }: TripMapProps) {
   const { theme } = useTheme();
   const mapRef = useRef<MapRef>(null);
   const points = useMemo(() => collectPoints(trip), [trip]);
 
-  // Itinéraire ordonné entre les nuits.
+  // Itinéraire ordonné : aéroport d'aller → nuits → aéroport de retour.
   const routeData = useMemo<FeatureCollection<LineString>>(() => {
-    const coords = trip.stages
-      .map((s) => s.accommodation?.location)
+    const ordered: (LatLng | undefined)[] = [
+      trip.outboundFlight?.airportLocation,
+      ...trip.stages.map((s) => s.accommodation?.location),
+      trip.returnFlight?.airportLocation,
+    ];
+    const coords = ordered
       .filter((l): l is LatLng => Boolean(l))
       .map((l) => [l.lng, l.lat] as [number, number]);
     return {
@@ -64,7 +82,7 @@ export function TripMap({
           ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } }]
           : [],
     };
-  }, [trip.stages]);
+  }, [trip.stages, trip.outboundFlight, trip.returnFlight]);
 
   // Liens en pointillés entre chaque nuit et ses lieux satellites.
   const linkData = useMemo<FeatureCollection<LineString>>(() => {
@@ -108,6 +126,24 @@ export function TripMap({
   // Recadrer uniquement au changement de voyage.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(fitToTrip, [trip.id]);
+
+  // Recadrage à la demande (bouton « Focus » d'une modale) : vole vers le point, zoomé.
+  useEffect(() => {
+    const map = mapRef.current?.getMap();
+    if (!map || !focusTarget) return;
+    // ⚠️ Ne jamais passer `padding: undefined` à flyTo (maplibre v4 lève) : on
+    // n'ajoute la clé que si un inset est fourni (hauteur du bottom sheet mobile).
+    const options: Parameters<typeof map.flyTo>[0] = {
+      center: [focusTarget.location.lng, focusTarget.location.lat],
+      zoom: 14,
+      duration: 900,
+    };
+    if (focusTarget.bottomInset) {
+      options.padding = { top: 0, bottom: focusTarget.bottomInset, left: 0, right: 0 };
+    }
+    map.flyTo(options);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusTarget?.nonce]);
 
   // (Ré)appliquer la traduction des labels au chargement et au changement de thème.
   useEffect(() => {
@@ -156,6 +192,27 @@ export function TripMap({
         />
       </Source>
 
+      {/* Aéroports des vols aller / retour (pays visité) */}
+      {(['outbound', 'return'] as const).map((side) => {
+        const flight = side === 'outbound' ? trip.outboundFlight : trip.returnFlight;
+        const loc = flight?.airportLocation;
+        if (!loc) return null;
+        return (
+          <Marker
+            key={`flight-${side}`}
+            longitude={loc.lng}
+            latitude={loc.lat}
+            anchor="center"
+            onClick={(e) => {
+              e.originalEvent.stopPropagation();
+              onSelectFlight(side);
+            }}
+          >
+            <FlightPin selected={selectedFlight === side} />
+          </Marker>
+        );
+      })}
+
       {/* Marqueurs de transport au milieu de chaque jambe de trajet */}
       {trip.stages.map((stage, index) => {
         const from = stage.accommodation?.location;
@@ -196,7 +253,12 @@ export function TripMap({
                 onSelectPlace(stage.id, p.id);
               }}
             >
-              <PlacePin color={stage.color} visited={p.visited} selected={selectedPlaceId === p.id} />
+              <PlacePin
+                color={stage.color}
+                emoji={PLACE_CATEGORIES[p.category].emoji}
+                visited={p.visited}
+                selected={selectedPlaceId === p.id}
+              />
             </Marker>
           )),
       )}
@@ -216,7 +278,12 @@ export function TripMap({
               onSelectStage(stage.id);
             }}
           >
-            <StagePin order={index + 1} color={stage.color} selected={selectedStageId === stage.id} />
+            <StagePin
+              order={index + 1}
+              color={stage.color}
+              emoji={stage.emoji}
+              selected={selectedStageId === stage.id}
+            />
           </Marker>
         );
       })}

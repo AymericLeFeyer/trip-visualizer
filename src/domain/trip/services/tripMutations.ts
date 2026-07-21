@@ -1,10 +1,19 @@
 import type {
   Accommodation,
+  Flight,
+  FlightLeg,
   Place,
   Stage,
   Transport,
   Trip,
 } from '@shared/types/trip';
+
+/** Vol d'aller ou de retour. */
+export type FlightSide = 'outbound' | 'return';
+const FLIGHT_KEY: Record<FlightSide, 'outboundFlight' | 'returnFlight'> = {
+  outbound: 'outboundFlight',
+  return: 'returnFlight',
+};
 
 /**
  * Fonctions de mutation pures : elles renvoient toujours un nouveau Trip
@@ -129,19 +138,45 @@ export function removePlace(trip: Trip, stageId: string, placeId: string): Trip 
   };
 }
 
-// --- Transports ---
+// --- Vols aller / retour ---
 
-export function addTransport(trip: Trip, transport: Transport): Trip {
-  return { ...trip, transports: [...trip.transports, transport] };
+export function setFlight(trip: Trip, side: FlightSide, patch: Partial<Flight>): Trip {
+  const key = FLIGHT_KEY[side];
+  const base: Flight = trip[key] ?? { legs: [] };
+  return { ...trip, [key]: { ...base, ...patch } };
 }
 
-export function updateTransport(trip: Trip, id: string, patch: Partial<Transport>): Trip {
+export function removeFlight(trip: Trip, side: FlightSide): Trip {
+  return { ...trip, [FLIGHT_KEY[side]]: undefined };
+}
+
+export function addFlightLeg(trip: Trip, side: FlightSide, leg: FlightLeg): Trip {
+  const key = FLIGHT_KEY[side];
+  const base: Flight = trip[key] ?? { legs: [] };
+  return { ...trip, [key]: { ...base, legs: [...base.legs, leg] } };
+}
+
+export function updateFlightLeg(
+  trip: Trip,
+  side: FlightSide,
+  legId: string,
+  patch: Partial<FlightLeg>,
+): Trip {
+  const key = FLIGHT_KEY[side];
+  const flight = trip[key];
+  if (!flight) return trip;
   return {
     ...trip,
-    transports: trip.transports.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+    [key]: {
+      ...flight,
+      legs: flight.legs.map((l) => (l.id === legId ? { ...l, ...patch } : l)),
+    },
   };
 }
 
-export function removeTransport(trip: Trip, id: string): Trip {
-  return { ...trip, transports: trip.transports.filter((t) => t.id !== id) };
+export function removeFlightLeg(trip: Trip, side: FlightSide, legId: string): Trip {
+  const key = FLIGHT_KEY[side];
+  const flight = trip[key];
+  if (!flight) return trip;
+  return { ...trip, [key]: { ...flight, legs: flight.legs.filter((l) => l.id !== legId) } };
 }
