@@ -306,14 +306,13 @@ function StageContent({
         (leg ? (
           <button
             onClick={onEditLeg}
-            disabled={!isAdmin}
-            className="flex w-full items-center gap-2 rounded-xl border border-border p-3 text-left disabled:cursor-default"
+            className="flex w-full items-center gap-2 rounded-xl border border-border p-3 text-left transition-colors hover:bg-muted"
           >
             <span className="text-lg">{TRANSPORT_MODES[leg.mode].emoji}</span>
             <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
               Vers {trip.stages[index + 1]?.name} · {formatTransportSummary(leg) || TRANSPORT_MODES[leg.mode].label}
             </span>
-            {isAdmin && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
           </button>
         ) : isAdmin ? (
           <button
