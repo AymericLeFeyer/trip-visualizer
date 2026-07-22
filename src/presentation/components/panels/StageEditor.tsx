@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronUp, MapPin, Plus, Trash2, X } from 'lucide-react';
 import type { Stage, Trip } from '@shared/types/trip';
-import { PLACE_CATEGORIES, STAGE_COLORS, STAGE_EMOJIS } from '@/shared/constants/catalog';
+import { CURRENCIES, PLACE_CATEGORIES, STAGE_COLORS, STAGE_EMOJIS } from '@/shared/constants/catalog';
 import { createPlace } from '@/domain/trip/services/tripFactory';
 import {
   addPlace,
@@ -16,6 +16,7 @@ import { cn } from '@/shared/lib/cn';
 import { Button } from '../ui/Button';
 import { Field } from '../ui/Field';
 import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
 import { FocusButton } from '../details/parts';
 import { LocationField } from './LocationField';
@@ -219,6 +220,38 @@ export function StageEditor({
               />
             </Field>
           </div>
+
+          <Field label="Prix du séjour">
+            <div className="flex items-center gap-1.5">
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                value={acc?.price ?? ''}
+                placeholder="0"
+                onChange={(e) =>
+                  mutate((t) =>
+                    setAccommodation(t, stage.id, {
+                      price: e.target.value === '' ? undefined : Number(e.target.value),
+                    }),
+                  )
+                }
+              />
+              <Select
+                value={acc?.currency ?? '€'}
+                className="w-20"
+                onChange={(e) =>
+                  mutate((t) => setAccommodation(t, stage.id, { currency: e.target.value }))
+                }
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </Field>
 
           <Field label="Modalités">
             <Textarea

@@ -1,6 +1,6 @@
 # CLAUDE.md — Trip Visualizer
 
-> Dernière mise à jour : 2026-07-22
+> Dernière mise à jour : 2026-07-22 (ajout budget/stats)
 
 App web pour visualiser un voyage (Japon) sur une carte : étapes ordonnées (nuits) + lieux satellites sans ordre. Autosave, partage par lien, **sans authentification**.
 
@@ -47,7 +47,7 @@ src/presentation/            # pages/, components/ (map, panels, details, ui), h
 ### Entités (`shared/types/trip.ts`)
 - **Trip** : `id, title, description?, stages[], transports[], createdAt, updatedAt`
 - **Stage** (étape/nuit) : `id, name, color, emoji?, accommodation?, places[], transportToNext?, notes?` — `transportToNext` = jambe de trajet vers l'étape suivante ; `emoji?` s'affiche dans le marqueur (sinon le numéro)
-- **Accommodation** : `name, address?, location?{lat,lng}, googleMapsUrl?, checkInDate?, checkOutDate?, arrivalTime?, departureTime?, modalities?, notes?`
+- **Accommodation** : `name, address?, location?{lat,lng}, googleMapsUrl?, checkInDate?, checkOutDate?, arrivalTime?, departureTime?, modalities?, price?, currency?, notes?` — `price/currency` = coût du séjour (agrégé dans le budget)
 - **Place** (lieu satellite) : `id, name, category, address?, location?, googleMapsUrl?, notes?, visited`
 - **Transport** : `id, mode, label, from?, to?, date?, departureTime?, arrivalTime?, distanceKm?, reference?, price?, currency?, notes?` — `mode` inclut `car`. Seul usage restant : **jambe entre étapes** (`stage.transportToNext`).
 - **Flight** (`trip.outboundFlight?` / `trip.returnFlight?`) : `airport?, airportLocation?, date?, legs[], price?, currency?, notes?`. `airport(Location)` = aéroport du **pays visité** affiché sur la carte (arrivée pour l'aller, départ pour le retour).
@@ -116,6 +116,8 @@ src/presentation/            # pages/, components/ (map, panels, details, ui), h
 - **Étape desktop = 2 colonnes (édition ET lecture)** : `StageEditor` et `StageDetail` en `md:grid-cols-2` (gauche = détails + hébergement, droite = lieux). `DetailModal` élargit la modale à **~70 % de l'écran** (`w-[92vw] md:w-[70vw]`) dès que `selection.kind === 'stage'`. La primitive `Modal` : `className` fournie **remplace** la largeur par défaut (`w-full max-w-md`) pour éviter les conflits de classes Tailwind.
 - **Emoji de lieu** : le marqueur (`PlacePin`) affiche `PLACE_CATEGORIES[category].emoji` dans une pastille (bordure = couleur d'étape), plus de rond nu.
 - **Ouvrir dans Google Maps** : `MapsSearchButton` (`details/parts.tsx`) + `mapsSearchUrl(query)` (`shared/lib/maps.ts`) construisent une URL de recherche Maps depuis l'**adresse** (fallback nom). Présent sur l'hébergement d'étape (`AccommodationBlock`, `LocationField`) et sur les lieux (`PlaceDetail`, `PlaceEditor` via `LocationField`, mobile). ≠ `googleMapsUrl` (lien manuel saisi).
+
+- **Budget / stats (admin uniquement)** : `BudgetModal` (`panels/`) affiche le total dépensé par catégorie (**Vols** = aller+retour, **Hébergements** = `stage.accommodation.price`, **Transports** = `stage.transportToNext.price`) + total global. Calcul pur dans `src/shared/lib/budget.ts` (`computeBudget(trip, rate)` → `{ lines, byCategory, totalEur, totalJpy }`, helpers `formatEur/formatJpy`, `toEur(amount, currency, rate)`). **Taux € ↔ ¥ variable** saisi dans un champ, persisté `localStorage` (`trip-visualizer.jpyRate`, défaut 165) ; `rate` = nb de ¥ pour 1 €. Conversion : `¥ → /rate`, tout le reste traité comme € (données réalistes = € ou ¥). Ouverte par un bouton **Wallet** dans la sidebar (desktop) et la barre supérieure (mobile), **rendu `isAdmin` uniquement**.
 
 ## Points d'attention (pièges)
 

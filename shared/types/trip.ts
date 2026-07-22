@@ -24,6 +24,10 @@ export interface Accommodation {
   departureTime?: string;
   /** Modalités : code d'accès, dépôt de bagages, caution, etc. */
   modalities?: string;
+  /** Prix du séjour. */
+  price?: number;
+  /** Devise (¥, €, $…). */
+  currency?: string;
   notes?: string;
 }
 

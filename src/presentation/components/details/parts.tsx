@@ -99,6 +99,9 @@ export function AccommodationBlock({ acc }: { acc: Accommodation }) {
           .filter(Boolean)
           .join(' · ')}
       </InfoLine>
+      <InfoLine label="Prix">
+        {acc.price != null && `${acc.price}${acc.currency ?? '€'}`}
+      </InfoLine>
       <InfoLine label="Modalités">{acc.modalities}</InfoLine>
       <InfoLine label="Notes">{acc.notes}</InfoLine>
       <div className="flex flex-wrap items-center gap-2 pt-1">

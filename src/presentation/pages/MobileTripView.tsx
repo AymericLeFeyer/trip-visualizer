@@ -10,6 +10,7 @@ import {
   Pencil,
   Plus,
   Share2,
+  Wallet,
 } from 'lucide-react';
 import type { Flight, LatLng, Place, Stage, Trip } from '@shared/types/trip';
 import { PLACE_CATEGORIES, TRANSPORT_MODES } from '@/shared/constants/catalog';
@@ -27,6 +28,7 @@ import { TripMap } from '@/presentation/components/map/TripMap';
 import { MobileSheet, type SheetSnap } from '@/presentation/components/mobile/MobileSheet';
 import { QuickAddPlace } from '@/presentation/components/mobile/QuickAddPlace';
 import { MapsSearchButton } from '@/presentation/components/details/parts';
+import { BudgetModal } from '@/presentation/components/panels/BudgetModal';
 import { cn } from '@/shared/lib/cn';
 
 interface MobileTripViewProps {
@@ -252,6 +254,12 @@ function StageContent({
               ]
                 .filter(Boolean)
                 .join(' · ')}
+            </div>
+          )}
+          {acc.price != null && (
+            <div className="text-xs text-muted-foreground">
+              Prix : {acc.price}
+              {acc.currency ?? '€'}
             </div>
           )}
           {acc.modalities && (
@@ -512,6 +520,7 @@ export function MobileTripView({
   const [copied, setCopied] = useState(false);
   const [snap, setSnap] = useState<SheetSnap>('half');
   const [addOpen, setAddOpen] = useState(false);
+  const [budgetOpen, setBudgetOpen] = useState(false);
   const [mapFocus, setMapFocus] = useState<
     { location: LatLng; nonce: number; bottomInset?: number } | null | undefined
   >(focusTarget);
@@ -682,6 +691,15 @@ export function MobileTripView({
           >
             {copied ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
           </button>
+          {isAdmin && (
+            <button
+              onClick={() => setBudgetOpen(true)}
+              className="flex h-9 w-9 items-center justify-center text-foreground"
+              title="Budget"
+            >
+              <Wallet className="h-4 w-4" />
+            </button>
+          )}
           <AdminLock />
           <ThemeToggle />
         </div>
@@ -801,6 +819,8 @@ export function MobileTripView({
           onClose={() => setAddOpen(false)}
         />
       )}
+
+      <BudgetModal trip={trip} open={budgetOpen} onClose={() => setBudgetOpen(false)} />
     </div>
   );
 }

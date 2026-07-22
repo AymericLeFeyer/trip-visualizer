@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Cloud, CloudOff, Loader2, Plus, Share2 } from 'lucide-react';
+import { Check, Cloud, CloudOff, Loader2, Plus, Share2, Wallet } from 'lucide-react';
 import type { Flight, Trip } from '@shared/types/trip';
 import { TRANSPORT_MODES } from '@/shared/constants/catalog';
 import { createStage, createTransport } from '@/domain/trip/services/tripFactory';
@@ -13,6 +13,7 @@ import { cn } from '@/shared/lib/cn';
 import { Button } from '../ui/Button';
 import { AdminLock } from '../AdminLock';
 import { ThemeToggle } from '../ThemeToggle';
+import { BudgetModal } from './BudgetModal';
 
 interface SidebarProps {
   trip: Trip;
@@ -92,6 +93,7 @@ export function Sidebar({
   onSelectFlight,
 }: SidebarProps) {
   const [copied, setCopied] = useState(false);
+  const [budgetOpen, setBudgetOpen] = useState(false);
 
   const handleShare = async () => {
     try {
@@ -151,11 +153,25 @@ export function Sidebar({
             )}
           </>
         )}
-        <Button variant="secondary" size="sm" className="w-full" onClick={handleShare}>
-          {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
-          {copied ? 'Lien copié !' : 'Partager le lien'}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" className="flex-1" onClick={handleShare}>
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+            {copied ? 'Lien copié !' : 'Partager le lien'}
+          </Button>
+          {isAdmin && (
+            <Button
+              variant="secondary"
+              size="sm"
+              title="Budget du voyage"
+              onClick={() => setBudgetOpen(true)}
+            >
+              <Wallet className="h-3.5 w-3.5" /> Budget
+            </Button>
+          )}
+        </div>
       </div>
+
+      <BudgetModal trip={trip} open={budgetOpen} onClose={() => setBudgetOpen(false)} />
 
       <div className="flex-1 space-y-2 overflow-y-auto p-3 scroll-thin">
         <FlightRow
