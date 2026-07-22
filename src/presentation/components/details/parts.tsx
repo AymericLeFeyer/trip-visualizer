@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import { ChevronRight, ExternalLink, Locate, MapPin, X } from 'lucide-react';
-import type { Accommodation, Place } from '@shared/types/trip';
+import type { Accommodation, LatLng, Place } from '@shared/types/trip';
 import { PLACE_CATEGORIES } from '@/shared/constants/catalog';
+import { distanceLabel } from '@/shared/lib/geo';
+import { formatLongDate } from '@/shared/lib/date';
 import { mapsSearchUrl } from '@/shared/lib/maps';
 import { Button } from '../ui/Button';
 
@@ -87,7 +89,7 @@ export function AccommodationBlock({ acc }: { acc: Accommodation }) {
       <div className="text-sm font-medium">🛏️ {acc.name}</div>
       <InfoLine label="Adresse">{acc.address}</InfoLine>
       <InfoLine label="Séjour">
-        {[acc.checkInDate, acc.checkOutDate].filter(Boolean).join(' → ')}
+        {[acc.checkInDate, acc.checkOutDate].filter(Boolean).map(formatLongDate).join(' → ')}
       </InfoLine>
       <InfoLine label="Horaires">
         {[
@@ -111,7 +113,17 @@ export function AccommodationBlock({ acc }: { acc: Accommodation }) {
  * Ligne d'un lieu à visiter en lecture seule (réutilisée modale + mobile).
  * Si `onClick` est fourni, la ligne devient un bouton (ouvre la modale du lieu).
  */
-export function PlaceLine({ place, onClick }: { place: Place; onClick?: () => void }) {
+export function PlaceLine({
+  place,
+  origin,
+  onClick,
+}: {
+  place: Place;
+  /** Point de l'étape (hébergement) pour estimer la distance à vol d'oiseau. */
+  origin?: LatLng | null;
+  onClick?: () => void;
+}) {
+  const distance = distanceLabel(origin, place.location);
   const inner = (
     <>
       <div className="flex items-center gap-1.5">
@@ -119,6 +131,9 @@ export function PlaceLine({ place, onClick }: { place: Place; onClick?: () => vo
         <span className={place.visited ? 'text-muted-foreground line-through' : ''}>
           {place.name}
         </span>
+        {distance && (
+          <span className="shrink-0 text-xs font-normal text-muted-foreground">· {distance}</span>
+        )}
         {onClick && <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />}
       </div>
       {place.notes && <p className="mt-0.5 text-xs text-muted-foreground">{place.notes}</p>}

@@ -17,6 +17,8 @@ import { createStage, createTransport } from '@/domain/trip/services/tripFactory
 import { addStage, setTransportLeg, updatePlace } from '@/domain/trip/services/tripMutations';
 import type { FlightSide } from '@/domain/trip/services/tripMutations';
 import { formatTransportSummary } from '@/shared/lib/transport';
+import { formatLongDate, nightsLabel } from '@/shared/lib/date';
+import { distanceLabel } from '@/shared/lib/geo';
 import type { SaveStatus } from '@/presentation/hooks/useTrip';
 import type { MapSelection } from '@/presentation/types';
 import { ThemeToggle } from '@/presentation/components/ThemeToggle';
@@ -126,23 +128,31 @@ function VisitedToggle({ visited, onToggle }: { visited: boolean; onToggle: () =
 
 function PlaceCard({
   place,
+  origin,
   isAdmin,
   onOpen,
   onToggleVisited,
 }: {
   place: Place;
+  origin?: LatLng | null;
   isAdmin: boolean;
   onOpen: () => void;
   onToggleVisited: () => void;
 }) {
   const cat = PLACE_CATEGORIES[place.category];
+  const distance = distanceLabel(origin, place.location);
   return (
     <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-2.5">
       <button onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-3 text-left">
         <span className="text-2xl leading-none">{cat.emoji}</span>
         <div className="min-w-0">
-          <div className={cn('truncate font-medium', place.visited && 'text-muted-foreground line-through')}>
-            {place.name}
+          <div className="flex items-center gap-1.5">
+            <span className={cn('truncate font-medium', place.visited && 'text-muted-foreground line-through')}>
+              {place.name}
+            </span>
+            {distance && (
+              <span className="shrink-0 text-xs font-normal text-muted-foreground">· {distance}</span>
+            )}
           </div>
           {place.address && (
             <div className="truncate text-xs text-muted-foreground">{place.address}</div>
@@ -185,6 +195,7 @@ function StageContent({
   const index = order - 1;
   const isLast = index === trip.stages.length - 1;
   const leg = stage.transportToNext;
+  const nights = nightsLabel(acc?.checkInDate, acc?.checkOutDate);
 
   return (
     <div className="space-y-4">
@@ -196,10 +207,17 @@ function StageContent({
           {stage.emoji ?? order}
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-lg font-bold leading-tight">{stage.name}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="truncate text-lg font-bold leading-tight">{stage.name}</h2>
+            {nights && (
+              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                {nights}
+              </span>
+            )}
+          </div>
           {(acc?.checkInDate || acc?.checkOutDate) && (
             <p className="text-xs text-muted-foreground">
-              {[acc?.checkInDate, acc?.checkOutDate].filter(Boolean).join(' → ')}
+              {[acc?.checkInDate, acc?.checkOutDate].filter(Boolean).map(formatLongDate).join(' → ')}
             </p>
           )}
         </div>
@@ -273,6 +291,7 @@ function StageContent({
               <PlaceCard
                 key={place.id}
                 place={place}
+                origin={stage.accommodation?.location}
                 isAdmin={isAdmin}
                 onOpen={() => onOpenPlace(place.id)}
                 onToggleVisited={() => onToggleVisited(place.id, !place.visited)}
@@ -332,6 +351,7 @@ function PlaceContent({
   onFocus: (location?: LatLng) => void;
 }) {
   const cat = PLACE_CATEGORIES[place.category];
+  const distance = distanceLabel(stage.accommodation?.location, place.location);
   return (
     <div className="space-y-4">
       <button
@@ -351,6 +371,7 @@ function PlaceContent({
           </h2>
           <p className="text-xs text-muted-foreground">
             {cat.label}
+            {distance && ` · ${distance} de l'hébergement`}
             {place.visited && ' · déjà visité'}
           </p>
         </div>

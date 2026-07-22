@@ -1,4 +1,5 @@
 import type { Stage, Trip } from '@shared/types/trip';
+import { nightsLabel } from '@/shared/lib/date';
 import { AccommodationBlock, DetailHeader, PlaceLine } from './parts';
 
 interface StageDetailProps {
@@ -12,6 +13,7 @@ interface StageDetailProps {
 /** Vue détail (lecture seule) d'une étape : hébergement + lieux + notes. */
 export function StageDetail({ trip, stage, onSelectPlace, onFocus, onClose }: StageDetailProps) {
   const order = trip.stages.findIndex((s) => s.id === stage.id) + 1;
+  const nights = nightsLabel(stage.accommodation?.checkInDate, stage.accommodation?.checkOutDate);
   return (
     <div className="flex min-h-0 flex-col">
       <DetailHeader
@@ -26,6 +28,11 @@ export function StageDetail({ trip, stage, onSelectPlace, onFocus, onClose }: St
               {stage.emoji ?? order}
             </span>
             <span className="truncate">{stage.name}</span>
+            {nights && (
+              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                {nights}
+              </span>
+            )}
           </>
         }
       />
@@ -57,6 +64,7 @@ export function StageDetail({ trip, stage, onSelectPlace, onFocus, onClose }: St
                   <PlaceLine
                     key={place.id}
                     place={place}
+                    origin={stage.accommodation?.location}
                     onClick={onSelectPlace ? () => onSelectPlace(place.id) : undefined}
                   />
                 ))}

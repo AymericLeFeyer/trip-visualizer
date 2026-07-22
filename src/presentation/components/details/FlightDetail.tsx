@@ -1,5 +1,6 @@
 import type { Flight } from '@shared/types/trip';
 import type { FlightSide } from '@/domain/trip/services/tripMutations';
+import { formatLongDate } from '@/shared/lib/date';
 import { DetailHeader, InfoLine } from './parts';
 
 const TITLE: Record<FlightSide, string> = {
@@ -23,7 +24,7 @@ export function FlightDetail({ side, flight, onFocus, onClose }: FlightDetailPro
       <div className="flex-1 space-y-3 overflow-y-auto p-4 scroll-thin">
         <div className="space-y-1">
           <InfoLine label="Aéroport">{flight.airport}</InfoLine>
-          <InfoLine label="Date">{flight.date}</InfoLine>
+          <InfoLine label="Date">{formatLongDate(flight.date)}</InfoLine>
         </div>
 
         {flight.legs.length > 0 && (

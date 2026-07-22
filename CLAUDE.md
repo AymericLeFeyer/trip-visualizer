@@ -1,6 +1,6 @@
 # CLAUDE.md — Trip Visualizer
 
-> Dernière mise à jour : 2026-07-21
+> Dernière mise à jour : 2026-07-22
 
 App web pour visualiser un voyage (Japon) sur une carte : étapes ordonnées (nuits) + lieux satellites sans ordre. Autosave, partage par lien, **sans authentification**.
 
@@ -104,6 +104,9 @@ src/presentation/            # pages/, components/ (map, panels, details, ui), h
 - **Bouton « Focus »** (`FocusButton`, `details/parts.tsx`) présent dans chaque modale ayant une localisation (étape=hébergement, lieu, jambe=milieu des 2 hébergements). Il appelle `onFocus(location)` → `TripPage.focusOnMap` qui **ferme la modale** et pousse un `focusTarget={location, nonce}`. `TripMap` réagit au `nonce` par un `flyTo` (zoom 14). Le `nonce` (horodatage) permet de re-focaliser le même point. `focusTarget.bottomInset` (px) ajoute un `padding` bas au `flyTo` = hauteur visible du bottom sheet mobile, pour que le point ne soit pas masqué (calculé par `MobileTripView.sheetInset` selon le cran).
 - **Sélection carte** : `deriveMapSelection(selection)` (`presentation/types.ts`) calcule les ids surlignés — partagé desktop/mobile.
 - **Résumé transport** : `formatTransportSummary(t)` (`shared/lib/transport.ts`) → « 320 km · 09:12–11:30 · 13320¥ ». Utilisé sidebar, mobile, `LegDetail`.
+- **Format des dates (lecture seule)** : `formatLongDate(iso)` (`src/shared/lib/date.ts`) → « lundi 16 janvier 2026 » (`Intl.DateTimeFormat('fr-FR')`, forcé midi UTC pour éviter le décalage de fuseau). Les inputs restent en `<input type="date">` (ISO `YYYY-MM-DD`) ; le format long ne s'applique **qu'à l'affichage** (séjour hébergement `AccommodationBlock` + mobile, `FlightDetail`, `LegDetail`).
+- **Durée d'étape (nuits)** : `nightsBetween(checkIn, checkOut)` / `nightsLabel(...)` (`src/shared/lib/date.ts`) → « 3 nuits » calculé depuis `accommodation.checkInDate/checkOutDate`. Affiché en **badge** à côté du nom de l'étape au clic (`StageDetail` desktop dans le titre, `StageContent` mobile dans le header). `null` si l'une des deux dates manque.
+- **Distance lieu ↔ étape** : `distanceLabel(origin, target)` / `formatDistanceKm(km)` (`src/shared/lib/geo.ts`) → estime à vol d'oiseau (Haversine) la distance d'un lieu au **point de l'étape** (`stage.accommodation?.location`). Affichée en petit à côté du nom du lieu (`PlaceLine` desktop via prop `origin`, `PlaceCard` mobile) **et** dans le détail (`PlaceDetail` `InfoLine`, `PlaceContent` mobile → « … de l'hébergement »). `null` si l'hébergement ou le lieu n'a pas de `location`.
 - **Mobile = carte plein écran + bottom sheet** (`MobileTripView`, pensé usage terrain au Japon) :
   - Carte en `absolute inset-0`, barre supérieure flottante translucide, `MobileSheet` (`components/mobile/`) à 3 crans **peek/half/full** déplaçable au doigt (pointer events, garde anti-tap après drag).
   - **Rail d'étapes** horizontal en tête du sheet (pills ✈️ Aller · étapes colorées · ✈️ Retour · + Étape) → navigue et recadre la carte (`flyTo` local, seedé par `focusTarget`).

@@ -1,6 +1,7 @@
 import { ArrowRight } from 'lucide-react';
 import type { Stage } from '@shared/types/trip';
 import { TRANSPORT_MODES } from '@/shared/constants/catalog';
+import { formatLongDate } from '@/shared/lib/date';
 import { DetailHeader, InfoLine } from './parts';
 
 interface LegDetailProps {
@@ -35,7 +36,7 @@ export function LegDetail({ stage, nextStage, onFocus, onClose }: LegDetailProps
         <InfoLine label="Transport">{mode.label}</InfoLine>
         <InfoLine label="Départ">{leg.from}</InfoLine>
         <InfoLine label="Arrivée">{leg.to}</InfoLine>
-        <InfoLine label="Date">{leg.date}</InfoLine>
+        <InfoLine label="Date">{formatLongDate(leg.date)}</InfoLine>
         <InfoLine label="Horaires">
           {[leg.departureTime, leg.arrivalTime].filter(Boolean).join(' – ')}
         </InfoLine>
