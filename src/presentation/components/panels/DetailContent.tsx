@@ -20,6 +20,8 @@ export interface DetailContentProps {
   onSelectPlace: (stageId: string, placeId: string) => void;
   onFocus: (location: LatLng) => void;
   onClose: () => void;
+  /** Colonne simple pour les étapes (tiroir étroit desktop). */
+  compact?: boolean;
 }
 
 function midpoint(a: LatLng, b: LatLng): LatLng {
@@ -43,6 +45,7 @@ export function DetailContent({
   onSelectPlace,
   onFocus,
   onClose,
+  compact,
 }: DetailContentProps) {
   const focusHandler = (location?: LatLng) => (location ? () => onFocus(location) : undefined);
   if (!selection) return null;
@@ -101,6 +104,7 @@ export function DetailContent({
         onSelectPlace={onSelectPlace}
         onFocus={focus}
         onClose={onClose}
+        compact={compact}
       />
     ) : (
       <StageDetail
@@ -109,6 +113,7 @@ export function DetailContent({
         onSelectPlace={(placeId) => onSelectPlace(stage.id, placeId)}
         onFocus={focus}
         onClose={onClose}
+        compact={compact}
       />
     );
   }

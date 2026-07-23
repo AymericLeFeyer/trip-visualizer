@@ -1,6 +1,7 @@
 import type { Stage, Trip } from '@shared/types/trip';
 import { nightsLabel } from '@/shared/lib/date';
 import { sortPlacesChronologically } from '@/shared/lib/place';
+import { cn } from '@/shared/lib/cn';
 import { AccommodationBlock, DetailHeader, PlaceLine, StageImage } from './parts';
 import { ConfidentialBlock } from './ConfidentialBlock';
 
@@ -10,10 +11,12 @@ interface StageDetailProps {
   onSelectPlace?: (placeId: string) => void;
   onFocus?: () => void;
   onClose?: () => void;
+  /** Colonne simple (tiroir étroit) au lieu de la grille 2 colonnes. */
+  compact?: boolean;
 }
 
 /** Vue détail (lecture seule) d'une étape : hébergement + lieux + notes. */
-export function StageDetail({ trip, stage, onSelectPlace, onFocus, onClose }: StageDetailProps) {
+export function StageDetail({ trip, stage, onSelectPlace, onFocus, onClose, compact }: StageDetailProps) {
   const order = trip.stages.findIndex((s) => s.id === stage.id) + 1;
   const nights = nightsLabel(stage.accommodation?.checkInDate, stage.accommodation?.checkOutDate);
   const places = sortPlacesChronologically(stage.places);
@@ -42,7 +45,7 @@ export function StageDetail({ trip, stage, onSelectPlace, onFocus, onClose }: St
 
       <div className="flex-1 min-h-0 overflow-y-auto p-4 scroll-thin">
         <StageImage url={stage.imageUrl} className="mb-4" />
-        <div className="grid gap-x-8 gap-y-4 md:grid-cols-2 md:items-start">
+        <div className={cn('grid gap-x-8 gap-y-4 md:items-start', !compact && 'md:grid-cols-2')}>
           {/* Colonne gauche : hébergement + notes */}
           <div className="space-y-4">
             {stage.accommodation ? (

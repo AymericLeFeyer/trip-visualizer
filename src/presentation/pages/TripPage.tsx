@@ -21,25 +21,34 @@ export function TripPage() {
   const isMobile = useIsMobile();
   const { isAdmin } = useAdminMode();
 
-  const [selection, setSelection] = useState<Selection>(null);
+  // Pile de sélections (desktop = tiroirs empilés : étape → lieu). Le dessus = actif.
+  const [stack, setStack] = useState<NonNullable<Selection>[]>([]);
+  const selection: Selection = stack.length ? stack[stack.length - 1] : null;
   const [placingTarget, setPlacingTarget] = useState<PlacingTarget>(null);
   const [focusTarget, setFocusTarget] = useState<{ location: LatLng; nonce: number } | null>(null);
 
-  const selectStage = (stageId: string) => setSelection({ kind: 'stage', stageId });
+  const selectStage = (stageId: string) => setStack([{ kind: 'stage', stageId }]);
+  // Un lieu ouvre un 2ᵉ tiroir par-dessus son étape (contexte conservé).
   const selectPlace = (stageId: string, placeId: string) =>
-    setSelection({ kind: 'place', stageId, placeId });
-  const selectLeg = (stageId: string) => setSelection({ kind: 'leg', stageId });
+    setStack([
+      { kind: 'stage', stageId },
+      { kind: 'place', stageId, placeId },
+    ]);
+  const selectLeg = (stageId: string) => setStack([{ kind: 'leg', stageId }]);
   const selectFlight = (side: FlightSide) => {
     // En admin, créer le vol à la volée s'il n'existe pas encore.
     const exists = side === 'outbound' ? trip?.outboundFlight : trip?.returnFlight;
     if (isAdmin && !exists) mutate((t) => setFlight(t, side, createFlight()));
-    setSelection({ kind: 'flight', side });
+    setStack([{ kind: 'flight', side }]);
   };
+  // Ferme le tiroir d'index i et tous ceux au-dessus.
+  const closeFrom = (index: number) => setStack((s) => s.slice(0, index));
+  const clearSelection = () => setStack([]);
 
-  // « Focus » d'une modale : recadre la carte sur le point et ferme la modale.
+  // « Focus » : recadre la carte sur le point et ferme les tiroirs.
   const focusOnMap = (location: LatLng) => {
     setFocusTarget({ location, nonce: Date.now() });
-    setSelection(null);
+    clearSelection();
   };
 
   const handleMapClick = (location: LatLng) => {
@@ -114,7 +123,7 @@ export function TripPage() {
           onSelectStage={selectStage}
           onSelectPlace={selectPlace}
           onFocus={focusOnMap}
-          onClose={() => setSelection(null)}
+          onClose={clearSelection}
         />
         {placementBanner}
       </>
@@ -134,21 +143,24 @@ export function TripPage() {
         onSelectFlight={selectFlight}
       />
 
-      {/* Desktop : tiroir latéral (plus de modale), la carte reste à droite. */}
-      <DetailDrawer
-        trip={trip}
-        selection={selection}
-        isAdmin={isAdmin}
-        placingTarget={placingTarget}
-        mutate={mutate}
-        setPlacingTarget={setPlacingTarget}
-        onSelectStage={selectStage}
-        onSelectPlace={selectPlace}
-        onFocus={focusOnMap}
-        onClose={() => setSelection(null)}
-      />
+      {/* Desktop : tiroirs empilés redimensionnables (plus de modale), carte à droite. */}
+      {stack.map((sel, i) => (
+        <DetailDrawer
+          key={i}
+          trip={trip}
+          selection={sel}
+          isAdmin={isAdmin}
+          placingTarget={placingTarget}
+          mutate={mutate}
+          setPlacingTarget={setPlacingTarget}
+          onSelectStage={selectStage}
+          onSelectPlace={selectPlace}
+          onFocus={focusOnMap}
+          onClose={() => closeFrom(i)}
+        />
+      ))}
 
-      <main className="relative flex-1">
+      <main className="relative min-w-0 flex-1">
         <TripMap
           trip={trip}
           selectedStageId={mapSelection.selectedStageId}

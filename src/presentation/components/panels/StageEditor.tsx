@@ -33,6 +33,8 @@ interface StageEditorProps {
   onSelectPlace: (stageId: string, placeId: string) => void;
   onFocus?: () => void;
   onClose: () => void;
+  /** Colonne simple (tiroir étroit) au lieu de la grille 2 colonnes. */
+  compact?: boolean;
 }
 
 export function StageEditor({
@@ -44,6 +46,7 @@ export function StageEditor({
   onSelectPlace,
   onFocus,
   onClose,
+  compact,
 }: StageEditorProps) {
   const acc = stage.accommodation;
   const accPlacing =
@@ -92,7 +95,7 @@ export function StageEditor({
       </header>
 
       <div className="flex-1 min-h-0 overflow-y-auto p-4 scroll-thin">
-        <div className="grid gap-x-8 gap-y-5 md:grid-cols-2 md:items-start">
+        <div className={cn('grid gap-x-8 gap-y-5 md:items-start', !compact && 'md:grid-cols-2')}>
           {/* Colonne gauche : détails & hébergement */}
           <div className="space-y-5">
         <Field label="Nom de l'étape">
