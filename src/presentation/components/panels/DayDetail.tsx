@@ -23,7 +23,7 @@ interface ProgramItem {
   emoji: string;
   label: string;
   sub?: string;
-  /** `travel` (vols/trajets) = couleur distincte ; `place` = lieu à visiter. */
+  /** `travel` (vols/trajets) = bordure en pointillés ; `place` = lieu à visiter. */
   variant: 'travel' | 'place';
   onClick: () => void;
 }
@@ -36,18 +36,11 @@ function ProgramRow({ item }: { item: ProgramItem }) {
         type="button"
         onClick={item.onClick}
         className={cn(
-          'flex w-full items-start gap-2.5 rounded-lg border p-2.5 text-left transition-colors',
-          item.variant === 'travel'
-            ? 'border-sky-300 bg-sky-50 hover:bg-sky-100 dark:border-sky-500/40 dark:bg-sky-500/10 dark:hover:bg-sky-500/20'
-            : 'border-border hover:bg-muted',
+          'flex w-full items-start gap-2.5 rounded-lg border p-2.5 text-left transition-colors hover:bg-muted',
+          item.variant === 'travel' ? 'border-dashed border-border' : 'border-border',
         )}
       >
-        <span
-          className={cn(
-            'w-11 shrink-0 pt-0.5 text-xs font-semibold tabular-nums',
-            item.variant === 'travel' ? 'text-sky-700 dark:text-sky-300' : 'text-primary',
-          )}
-        >
+        <span className="w-11 shrink-0 pt-0.5 text-xs font-semibold tabular-nums text-primary">
           {item.time ?? '—'}
         </span>
         <span className="shrink-0 text-lg leading-tight">{item.emoji}</span>
@@ -89,7 +82,7 @@ export function DayDetail({ trip, date, onPush, onFocus, onClose }: DayDetailPro
         key: `leg-${l.stage.id}`,
         time: l.leg.departureTime,
         emoji: TRANSPORT_MODES[l.leg.mode].emoji,
-        label: l.leg.label || `${l.stage.name}${l.nextStage ? ` → ${l.nextStage.name}` : ''}`,
+        label: `${l.stage.name}${l.nextStage ? ` → ${l.nextStage.name}` : ''}`,
         sub: [l.leg.from, l.leg.to].filter(Boolean).join(' → ') || undefined,
         variant: 'travel',
         onClick: () => onPush({ kind: 'leg', stageId: l.stage.id }),

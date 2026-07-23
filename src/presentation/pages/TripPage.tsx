@@ -37,8 +37,18 @@ export function TripPage() {
   // Pile de sélections (desktop = tiroirs empilés : étape → lieu). Le dessus = actif.
   const [stack, setStack] = useState<NonNullable<Selection>[]>([]);
   const selection: Selection = stack.length ? stack[stack.length - 1] : null;
+  // Base de la pile = élément « fil d'Ariane » surligné dans la sidebar/rail
+  // (l'étape/le jour reste coloré même quand un lieu enfant est ouvert au-dessus).
+  const rootSelection: Selection = stack.length ? stack[0] : null;
   const [placingTarget, setPlacingTarget] = useState<PlacingTarget>(null);
   const [focusTarget, setFocusTarget] = useState<{ location: LatLng; nonce: number } | null>(null);
+
+  const placeLocation = (stageId: string, placeId: string) =>
+    trip?.stages.find((s) => s.id === stageId)?.places.find((p) => p.id === placeId)?.location;
+  const focusPlace = (stageId: string, placeId: string) => {
+    const loc = placeLocation(stageId, placeId);
+    if (loc) setFocusTarget({ location: loc, nonce: Date.now() });
+  };
 
   const selectStage = (stageId: string) => setStack([{ kind: 'stage', stageId }]);
   // Un lieu ouvre un 2ᵉ tiroir par-dessus son étape (contexte conservé).
@@ -47,6 +57,11 @@ export function TripPage() {
       { kind: 'stage', stageId },
       { kind: 'place', stageId, placeId },
     ]);
+  // Ouverture d'un lieu depuis un tiroir (liste d'étape) : recadre aussi la carte.
+  const selectPlaceFromDrawer = (stageId: string, placeId: string) => {
+    selectPlace(stageId, placeId);
+    focusPlace(stageId, placeId);
+  };
   const selectLeg = (stageId: string) => setStack([{ kind: 'leg', stageId }]);
   const selectFlight = (side: FlightSide) => {
     // En admin, créer le vol à la volée s'il n'existe pas encore.
@@ -161,7 +176,7 @@ export function TripPage() {
     <div className="flex h-full">
       <Sidebar
         trip={trip}
-        selection={selection}
+        selection={rootSelection}
         saveStatus={saveStatus}
         isAdmin={isAdmin}
         viewMode={viewMode}
@@ -187,8 +202,11 @@ export function TripPage() {
               mutate={mutate}
               setPlacingTarget={setPlacingTarget}
               onSelectStage={selectStage}
-              onSelectPlace={selectPlace}
-              onPush={(sel2) => pushFrom(i, sel2)}
+              onSelectPlace={selectPlaceFromDrawer}
+              onPush={(sel2) => {
+                pushFrom(i, sel2);
+                if (sel2.kind === 'place') focusPlace(sel2.stageId, sel2.placeId);
+              }}
               onFocus={focusInDrawer}
               onClose={() => closeFrom(i)}
             />

@@ -326,20 +326,9 @@ function StageContent({
 
       {/* Lieux à visiter */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold">
-            À visiter{' '}
-            <span className="text-muted-foreground">({places.length})</span>
-          </h3>
-          {isAdmin && (
-            <button
-              onClick={onAddPlace}
-              className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm"
-            >
-              <Plus className="h-3.5 w-3.5" /> Lieu
-            </button>
-          )}
-        </div>
+        <h3 className="text-sm font-semibold">
+          À visiter <span className="text-muted-foreground">({places.length})</span>
+        </h3>
 
         {places.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
@@ -358,6 +347,16 @@ function StageContent({
               />
             ))}
           </div>
+        )}
+
+        {/* Ajout d'un lieu en fin de liste (remplace l'ancien FAB). */}
+        {isAdmin && (
+          <button
+            onClick={onAddPlace}
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border p-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+          >
+            <Plus className="h-4 w-4" /> Ajouter un lieu
+          </button>
         )}
       </div>
 
@@ -599,7 +598,7 @@ function DayContent({
           key: `leg-${l.stage.id}`,
           time: l.leg.departureTime,
           emoji: TRANSPORT_MODES[l.leg.mode].emoji,
-          label: l.leg.label || `${l.stage.name}${l.nextStage ? ` → ${l.nextStage.name}` : ''}`,
+          label: `${l.stage.name}${l.nextStage ? ` → ${l.nextStage.name}` : ''}`,
           travel: true,
           onClick: () => onOpenStage(l.stage.id),
         })),
@@ -650,18 +649,11 @@ function DayContent({
               key={item.key}
               onClick={item.onClick}
               className={cn(
-                'flex w-full items-start gap-2.5 rounded-xl border p-2.5 text-left transition-colors',
-                item.travel
-                  ? 'border-sky-300 bg-sky-50 hover:bg-sky-100 dark:border-sky-500/40 dark:bg-sky-500/10'
-                  : 'border-border bg-card hover:bg-muted',
+                'flex w-full items-start gap-2.5 rounded-xl border bg-card p-2.5 text-left transition-colors hover:bg-muted',
+                item.travel ? 'border-dashed border-border' : 'border-border',
               )}
             >
-              <span
-                className={cn(
-                  'w-11 shrink-0 pt-0.5 text-xs font-semibold tabular-nums',
-                  item.travel ? 'text-sky-700 dark:text-sky-300' : 'text-primary',
-                )}
-              >
+              <span className="w-11 shrink-0 pt-0.5 text-xs font-semibold tabular-nums text-primary">
                 {item.time ?? '—'}
               </span>
               <span className="shrink-0 text-xl leading-tight">{item.emoji}</span>
@@ -923,17 +915,6 @@ export function MobileTripView({
           <ThemeToggle />
         </div>
       </header>
-
-      {/* FAB capture rapide (admin) */}
-      {isAdmin && !placingMode && (
-        <button
-          onClick={() => setAddOpen(true)}
-          className="absolute bottom-[calc(20dvh+env(safe-area-inset-bottom))] right-4 z-[960] flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95"
-          title="Ajouter un lieu"
-        >
-          <Plus className="h-6 w-6" />
-        </button>
-      )}
 
       {/* Bottom sheet : rail + détail de l'élément actif */}
       <MobileSheet
