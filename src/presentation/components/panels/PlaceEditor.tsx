@@ -11,6 +11,7 @@ import { Textarea } from '../ui/Textarea';
 import { FocusButton } from '../details/parts';
 import { LocationField } from './LocationField';
 import { PriceField } from './PriceField';
+import { ImageField } from './ImageField';
 
 interface PlaceEditorProps {
   trip: Trip;
@@ -102,11 +103,34 @@ export function PlaceEditor({
           </Field>
         </div>
 
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Jour prévu">
+            <Input
+              type="date"
+              value={place.plannedDate ?? ''}
+              onChange={(e) => patch({ plannedDate: e.target.value || undefined })}
+            />
+          </Field>
+          <Field label="Heure prévue">
+            <Input
+              type="time"
+              value={place.plannedTime ?? ''}
+              onChange={(e) => patch({ plannedTime: e.target.value || undefined })}
+            />
+          </Field>
+        </div>
+
         <PriceField
           price={place.price}
           currency={place.currency}
           persons={place.persons}
           onChange={patch}
+        />
+
+        <ImageField
+          imageUrl={place.imageUrl}
+          query={place.name}
+          onChange={(imageUrl) => patch({ imageUrl })}
         />
 
         <LocationField
@@ -127,6 +151,14 @@ export function PlaceEditor({
             value={place.notes ?? ''}
             placeholder="Horaires, tarif, réservation, astuces…"
             onChange={(e) => patch({ notes: e.target.value })}
+          />
+        </Field>
+
+        <Field label="🔒 Informations confidentielles">
+          <Textarea
+            value={place.confidential ?? ''}
+            placeholder="Codes, n° de réservation… (visibles uniquement avec le code admin)"
+            onChange={(e) => patch({ confidential: e.target.value || undefined })}
           />
         </Field>
 

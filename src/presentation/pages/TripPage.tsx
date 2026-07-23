@@ -11,6 +11,7 @@ import { useAdminMode } from '@/presentation/mode/AdminModeProvider';
 import { deriveMapSelection, type PlacingTarget, type Selection } from '@/presentation/types';
 import { Sidebar } from '@/presentation/components/panels/Sidebar';
 import { DetailModal } from '@/presentation/components/panels/DetailModal';
+import { DetailDrawer } from '@/presentation/components/panels/DetailDrawer';
 import { TripMap } from '@/presentation/components/map/TripMap';
 import { MobileTripView } from './MobileTripView';
 
@@ -75,30 +76,14 @@ export function TripPage() {
 
   const mapSelection = deriveMapSelection(selection);
 
-  // Rendus partagés desktop/mobile (la modale est en position fixed → où que ce soit dans l'arbre).
-  const overlays = (
-    <>
-      {placingTarget && (
-        <div className="fixed left-1/2 top-4 z-[1300] -translate-x-1/2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-lg">
-          Clique sur la carte pour placer le point
-          <button className="ml-3 underline opacity-90" onClick={() => setPlacingTarget(null)}>
-            annuler
-          </button>
-        </div>
-      )}
-      <DetailModal
-        trip={trip}
-        selection={selection}
-        isAdmin={isAdmin}
-        placingTarget={placingTarget}
-        mutate={mutate}
-        setPlacingTarget={setPlacingTarget}
-        onSelectStage={selectStage}
-        onSelectPlace={selectPlace}
-        onFocus={focusOnMap}
-        onClose={() => setSelection(null)}
-      />
-    </>
+  // Bandeau de placement (position fixed → partagé desktop/mobile).
+  const placementBanner = placingTarget && (
+    <div className="fixed left-1/2 top-4 z-[1300] -translate-x-1/2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-lg">
+      Clique sur la carte pour placer le point
+      <button className="ml-3 underline opacity-90" onClick={() => setPlacingTarget(null)}>
+        annuler
+      </button>
+    </div>
   );
 
   if (isMobile) {
@@ -118,7 +103,20 @@ export function TripPage() {
           onSelectFlight={selectFlight}
           onMapClick={handleMapClick}
         />
-        {overlays}
+        {/* Mobile : l'édition passe par une modale (les taps carte pilotent le sheet). */}
+        <DetailModal
+          trip={trip}
+          selection={selection}
+          isAdmin={isAdmin}
+          placingTarget={placingTarget}
+          mutate={mutate}
+          setPlacingTarget={setPlacingTarget}
+          onSelectStage={selectStage}
+          onSelectPlace={selectPlace}
+          onFocus={focusOnMap}
+          onClose={() => setSelection(null)}
+        />
+        {placementBanner}
       </>
     );
   }
@@ -134,6 +132,20 @@ export function TripPage() {
         onSelectStage={selectStage}
         onSelectLeg={selectLeg}
         onSelectFlight={selectFlight}
+      />
+
+      {/* Desktop : tiroir latéral (plus de modale), la carte reste à droite. */}
+      <DetailDrawer
+        trip={trip}
+        selection={selection}
+        isAdmin={isAdmin}
+        placingTarget={placingTarget}
+        mutate={mutate}
+        setPlacingTarget={setPlacingTarget}
+        onSelectStage={selectStage}
+        onSelectPlace={selectPlace}
+        onFocus={focusOnMap}
+        onClose={() => setSelection(null)}
       />
 
       <main className="relative flex-1">
@@ -153,7 +165,7 @@ export function TripPage() {
         />
       </main>
 
-      {overlays}
+      {placementBanner}
     </div>
   );
 }

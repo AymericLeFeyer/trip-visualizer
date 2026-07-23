@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Cloud, CloudOff, Loader2, Plus, Share2, Wallet } from 'lucide-react';
+import { CalendarDays, Check, Cloud, CloudOff, Loader2, Plus, Share2, Wallet } from 'lucide-react';
 import type { Flight, Trip } from '@shared/types/trip';
 import { TRANSPORT_MODES } from '@/shared/constants/catalog';
 import { createStage, createTransport } from '@/domain/trip/services/tripFactory';
@@ -14,6 +14,7 @@ import { Button } from '../ui/Button';
 import { AdminLock } from '../AdminLock';
 import { ThemeToggle } from '../ThemeToggle';
 import { BudgetModal } from './BudgetModal';
+import { ItineraryModal } from './ItineraryModal';
 
 interface SidebarProps {
   trip: Trip;
@@ -94,6 +95,7 @@ export function Sidebar({
 }: SidebarProps) {
   const [copied, setCopied] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
+  const [itineraryOpen, setItineraryOpen] = useState(false);
 
   const handleShare = async () => {
     try {
@@ -158,6 +160,14 @@ export function Sidebar({
             {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
             {copied ? 'Lien copié !' : 'Partager le lien'}
           </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            title="Voir le voyage jour par jour"
+            onClick={() => setItineraryOpen(true)}
+          >
+            <CalendarDays className="h-3.5 w-3.5" /> Jour par jour
+          </Button>
           {isAdmin && (
             <Button
               variant="secondary"
@@ -172,6 +182,7 @@ export function Sidebar({
       </div>
 
       <BudgetModal trip={trip} open={budgetOpen} onClose={() => setBudgetOpen(false)} />
+      <ItineraryModal trip={trip} open={itineraryOpen} onClose={() => setItineraryOpen(false)} />
 
       <div className="flex-1 space-y-2 overflow-y-auto p-3 scroll-thin">
         <FlightRow

@@ -13,6 +13,8 @@ import {
 } from '@/domain/trip/services/tripMutations';
 import type { PlacingTarget } from '@/presentation/types';
 import { cn } from '@/shared/lib/cn';
+import { sortPlacesChronologically } from '@/shared/lib/place';
+import { formatPlanned } from '@/shared/lib/date';
 import { Button } from '../ui/Button';
 import { Field } from '../ui/Field';
 import { Input } from '../ui/Input';
@@ -20,6 +22,7 @@ import { Textarea } from '../ui/Textarea';
 import { FocusButton } from '../details/parts';
 import { LocationField } from './LocationField';
 import { PriceField } from './PriceField';
+import { ImageField } from './ImageField';
 
 interface StageEditorProps {
   trip: Trip;
@@ -145,6 +148,12 @@ export function StageEditor({
           </div>
         </Field>
 
+        <ImageField
+          imageUrl={stage.imageUrl}
+          query={stage.name}
+          onChange={(imageUrl) => mutate((t) => updateStage(t, stage.id, { imageUrl }))}
+        />
+
         {/* --- Hébergement / nuit --- */}
         <section className="space-y-3 rounded-lg border border-border bg-muted/40 p-3">
           <h3 className="flex items-center gap-1.5 text-sm font-semibold">
@@ -265,7 +274,7 @@ export function StageEditor({
           </p>
 
           <ul className="space-y-1">
-            {stage.places.map((place) => (
+            {sortPlacesChronologically(stage.places).map((place) => (
               <li
                 key={place.id}
                 className={cn(
@@ -293,6 +302,11 @@ export function StageEditor({
                   <span>{PLACE_CATEGORIES[place.category].emoji}</span>
                   <span className="truncate">{place.name}</span>
                   {place.reserved && <span title="Réservé">🎟️</span>}
+                  {formatPlanned(place.plannedDate, place.plannedTime) && (
+                    <span className="shrink-0 text-xs font-normal text-primary">
+                      🕒 {formatPlanned(place.plannedDate, place.plannedTime)}
+                    </span>
+                  )}
                 </button>
                 <Button
                   variant="ghost"
@@ -316,6 +330,16 @@ export function StageEditor({
           <Textarea
             value={stage.notes ?? ''}
             onChange={(e) => mutate((t) => updateStage(t, stage.id, { notes: e.target.value }))}
+          />
+        </Field>
+
+        <Field label="🔒 Informations confidentielles">
+          <Textarea
+            value={stage.confidential ?? ''}
+            placeholder="Codes d'accès, n° de réservation… (visibles uniquement avec le code admin)"
+            onChange={(e) =>
+              mutate((t) => updateStage(t, stage.id, { confidential: e.target.value || undefined }))
+            }
           />
         </Field>
 

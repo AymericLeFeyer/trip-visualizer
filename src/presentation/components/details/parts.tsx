@@ -3,8 +3,9 @@ import { ChevronRight, ExternalLink, Locate, MapPin, X } from 'lucide-react';
 import type { Accommodation, LatLng, Place } from '@shared/types/trip';
 import { PLACE_CATEGORIES } from '@/shared/constants/catalog';
 import { distanceLabel } from '@/shared/lib/geo';
-import { formatLongDate } from '@/shared/lib/date';
+import { formatLongDate, formatPlanned } from '@/shared/lib/date';
 import { mapsSearchUrl } from '@/shared/lib/maps';
+import { cn } from '@/shared/lib/cn';
 import { Button } from '../ui/Button';
 
 /** Bouton ouvrant Google Maps sur l'adresse/le nom (recherche, sans clé). */
@@ -55,6 +56,32 @@ export function DetailHeader({
         )}
       </div>
     </header>
+  );
+}
+
+/** Image d'illustration (lieu / étape) en lecture seule. `null` si absente. */
+export function StageImage({ url, className }: { url?: string; className?: string }) {
+  if (!url) return null;
+  return (
+    <img
+      src={url}
+      alt=""
+      className={cn('h-44 w-full rounded-lg border border-border bg-muted object-cover', className)}
+      onError={(e) => {
+        (e.currentTarget as HTMLImageElement).style.display = 'none';
+      }}
+    />
+  );
+}
+
+/** Badge du créneau prévu (jour + heure) d'un lieu. `null` si non planifié. */
+export function PlannedBadge({ date, time }: { date?: string; time?: string }) {
+  const label = formatPlanned(date, time);
+  if (!label) return null;
+  return (
+    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+      🕒 {label}
+    </span>
   );
 }
 
@@ -154,6 +181,7 @@ export function PlaceLine({
           <span className="shrink-0 text-xs font-normal text-muted-foreground">· {distance}</span>
         )}
         {place.reserved && <ReservedBadge />}
+        <PlannedBadge date={place.plannedDate} time={place.plannedTime} />
         {price && (
           <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
             {price}

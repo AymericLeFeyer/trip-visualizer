@@ -61,6 +61,14 @@ export interface Place {
   currency?: string;
   /** Nombre de personnes couvertes par ce prix (défaut 1). */
   persons?: number;
+  /** Jour prévu de la visite (YYYY-MM-DD). Sert au tri chronologique. */
+  plannedDate?: string;
+  /** Heure prévue de la visite (HH:MM). Sert au tri chronologique. */
+  plannedTime?: string;
+  /** Image d'illustration (URL). */
+  imageUrl?: string;
+  /** Informations confidentielles (codes, n° de résa…), visibles en mode admin uniquement. */
+  confidential?: string;
 }
 
 /** Étape = une base (là où l'on dort), les étapes sont ordonnées. */
@@ -76,6 +84,10 @@ export interface Stage {
   /** Transport vers l'étape suivante (jambe de trajet). */
   transportToNext?: Transport;
   notes?: string;
+  /** Image d'illustration (URL). */
+  imageUrl?: string;
+  /** Informations confidentielles (codes, n° de résa…), visibles en mode admin uniquement. */
+  confidential?: string;
 }
 
 export type TransportMode = 'train' | 'shinkansen' | 'bus' | 'plane' | 'ferry' | 'car' | 'walk' | 'other';

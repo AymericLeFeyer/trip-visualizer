@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  CalendarDays,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -18,7 +19,8 @@ import { createStage, createTransport } from '@/domain/trip/services/tripFactory
 import { addStage, setTransportLeg, updatePlace } from '@/domain/trip/services/tripMutations';
 import type { FlightSide } from '@/domain/trip/services/tripMutations';
 import { formatTransportSummary } from '@/shared/lib/transport';
-import { formatLongDate, nightsLabel } from '@/shared/lib/date';
+import { formatLongDate, formatPlanned, nightsLabel } from '@/shared/lib/date';
+import { sortPlacesChronologically } from '@/shared/lib/place';
 import { distanceLabel } from '@/shared/lib/geo';
 import type { SaveStatus } from '@/presentation/hooks/useTrip';
 import type { MapSelection } from '@/presentation/types';
@@ -28,7 +30,9 @@ import { TripMap } from '@/presentation/components/map/TripMap';
 import { MobileSheet, type SheetSnap } from '@/presentation/components/mobile/MobileSheet';
 import { QuickAddPlace } from '@/presentation/components/mobile/QuickAddPlace';
 import { MapsSearchButton } from '@/presentation/components/details/parts';
+import { ConfidentialBlock } from '@/presentation/components/details/ConfidentialBlock';
 import { BudgetModal } from '@/presentation/components/panels/BudgetModal';
+import { ItineraryModal } from '@/presentation/components/panels/ItineraryModal';
 import { cn } from '@/shared/lib/cn';
 
 interface MobileTripViewProps {
@@ -144,6 +148,7 @@ function PlaceCard({
   const cat = PLACE_CATEGORIES[place.category];
   const distance = distanceLabel(origin, place.location);
   const price = place.price != null ? `${place.price}${place.currency ?? '€'}` : null;
+  const planned = formatPlanned(place.plannedDate, place.plannedTime);
   return (
     <div
       className={cn(
@@ -170,6 +175,7 @@ function PlaceCard({
             )}
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            {planned && <span className="shrink-0 font-medium text-primary">🕒 {planned}</span>}
             {place.address && <span className="truncate">{place.address}</span>}
             {distance && <span className="shrink-0">· {distance}</span>}
             {price && <span className="shrink-0 font-medium tabular-nums">· {price}</span>}
@@ -213,9 +219,20 @@ function StageContent({
   const isLast = index === trip.stages.length - 1;
   const leg = stage.transportToNext;
   const nights = nightsLabel(acc?.checkInDate, acc?.checkOutDate);
+  const places = sortPlacesChronologically(stage.places);
 
   return (
     <div className="space-y-4">
+      {stage.imageUrl && (
+        <img
+          src={stage.imageUrl}
+          alt=""
+          className="h-40 w-full rounded-xl border border-border bg-muted object-cover"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = 'none';
+          }}
+        />
+      )}
       <div className="flex items-start gap-3">
         <span
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl font-bold text-white"
@@ -292,7 +309,7 @@ function StageContent({
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold">
             À visiter{' '}
-            <span className="text-muted-foreground">({stage.places.length})</span>
+            <span className="text-muted-foreground">({places.length})</span>
           </h3>
           {isAdmin && (
             <button
@@ -304,13 +321,13 @@ function StageContent({
           )}
         </div>
 
-        {stage.places.length === 0 ? (
+        {places.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
             {isAdmin ? 'Ajoute les spots que tu veux voir.' : 'Aucun lieu pour cette étape.'}
           </p>
         ) : (
           <div className="space-y-2">
-            {stage.places.map((place) => (
+            {places.map((place) => (
               <PlaceCard
                 key={place.id}
                 place={place}
@@ -351,6 +368,8 @@ function StageContent({
           {stage.notes}
         </p>
       )}
+
+      <ConfidentialBlock text={stage.confidential} />
     </div>
   );
 }
@@ -374,6 +393,7 @@ function PlaceContent({
 }) {
   const cat = PLACE_CATEGORIES[place.category];
   const distance = distanceLabel(stage.accommodation?.location, place.location);
+  const planned = formatPlanned(place.plannedDate, place.plannedTime);
   return (
     <div className="space-y-4">
       <button
@@ -382,6 +402,17 @@ function PlaceContent({
       >
         <ChevronLeft className="h-4 w-4" /> {stage.name}
       </button>
+
+      {place.imageUrl && (
+        <img
+          src={place.imageUrl}
+          alt=""
+          className="h-40 w-full rounded-xl border border-border bg-muted object-cover"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = 'none';
+          }}
+        />
+      )}
 
       <div className="flex items-start gap-3">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-muted text-2xl">
@@ -400,6 +431,7 @@ function PlaceContent({
           </div>
           <p className="text-xs text-muted-foreground">
             {cat.label}
+            {planned && ` · 🕒 ${planned}`}
             {distance && ` · ${distance} de l'hébergement`}
             {place.price != null && ` · ${place.price}${place.currency ?? '€'}`}
             {place.visited && ' · déjà visité'}
@@ -423,6 +455,8 @@ function PlaceContent({
           {place.notes}
         </p>
       )}
+
+      <ConfidentialBlock text={place.confidential} />
 
       <div className="flex flex-wrap items-center gap-2">
         {place.location && <FocusPill onClick={() => onFocus(place.location)} />}
@@ -544,6 +578,7 @@ export function MobileTripView({
   const [snap, setSnap] = useState<SheetSnap>('half');
   const [addOpen, setAddOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
+  const [itineraryOpen, setItineraryOpen] = useState(false);
   const [mapFocus, setMapFocus] = useState<
     { location: LatLng; nonce: number; bottomInset?: number } | null | undefined
   >(focusTarget);
@@ -714,6 +749,13 @@ export function MobileTripView({
           >
             {copied ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
           </button>
+          <button
+            onClick={() => setItineraryOpen(true)}
+            className="flex h-9 w-9 items-center justify-center text-foreground"
+            title="Jour par jour"
+          >
+            <CalendarDays className="h-4 w-4" />
+          </button>
           {isAdmin && (
             <button
               onClick={() => setBudgetOpen(true)}
@@ -844,6 +886,7 @@ export function MobileTripView({
       )}
 
       <BudgetModal trip={trip} open={budgetOpen} onClose={() => setBudgetOpen(false)} />
+      <ItineraryModal trip={trip} open={itineraryOpen} onClose={() => setItineraryOpen(false)} />
     </div>
   );
 }

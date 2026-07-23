@@ -1,6 +1,8 @@
 import type { Stage, Trip } from '@shared/types/trip';
 import { nightsLabel } from '@/shared/lib/date';
-import { AccommodationBlock, DetailHeader, PlaceLine } from './parts';
+import { sortPlacesChronologically } from '@/shared/lib/place';
+import { AccommodationBlock, DetailHeader, PlaceLine, StageImage } from './parts';
+import { ConfidentialBlock } from './ConfidentialBlock';
 
 interface StageDetailProps {
   trip: Trip;
@@ -14,6 +16,7 @@ interface StageDetailProps {
 export function StageDetail({ trip, stage, onSelectPlace, onFocus, onClose }: StageDetailProps) {
   const order = trip.stages.findIndex((s) => s.id === stage.id) + 1;
   const nights = nightsLabel(stage.accommodation?.checkInDate, stage.accommodation?.checkOutDate);
+  const places = sortPlacesChronologically(stage.places);
   return (
     <div className="flex min-h-0 flex-col">
       <DetailHeader
@@ -38,6 +41,7 @@ export function StageDetail({ trip, stage, onSelectPlace, onFocus, onClose }: St
       />
 
       <div className="flex-1 min-h-0 overflow-y-auto p-4 scroll-thin">
+        <StageImage url={stage.imageUrl} className="mb-4" />
         <div className="grid gap-x-8 gap-y-4 md:grid-cols-2 md:items-start">
           {/* Colonne gauche : hébergement + notes */}
           <div className="space-y-4">
@@ -53,14 +57,16 @@ export function StageDetail({ trip, stage, onSelectPlace, onFocus, onClose }: St
                 <p className="whitespace-pre-wrap text-sm text-muted-foreground">{stage.notes}</p>
               </div>
             )}
+
+            <ConfidentialBlock text={stage.confidential} />
           </div>
 
           {/* Colonne droite : lieux à visiter */}
           <div className="space-y-1.5">
-            <h3 className="text-sm font-semibold">Lieux à visiter ({stage.places.length})</h3>
-            {stage.places.length > 0 ? (
+            <h3 className="text-sm font-semibold">Lieux à visiter ({places.length})</h3>
+            {places.length > 0 ? (
               <ul className="space-y-1.5">
-                {stage.places.map((place) => (
+                {places.map((place) => (
                   <PlaceLine
                     key={place.id}
                     place={place}
