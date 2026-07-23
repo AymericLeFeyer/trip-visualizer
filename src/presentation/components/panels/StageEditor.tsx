@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronUp, MapPin, Plus, Trash2, X } from 'lucide-react';
 import type { Stage, Trip } from '@shared/types/trip';
-import { CURRENCIES, PLACE_CATEGORIES, STAGE_COLORS, STAGE_EMOJIS } from '@/shared/constants/catalog';
+import { PLACE_CATEGORIES, STAGE_COLORS, STAGE_EMOJIS } from '@/shared/constants/catalog';
 import { createPlace } from '@/domain/trip/services/tripFactory';
 import {
   addPlace,
@@ -16,10 +16,10 @@ import { cn } from '@/shared/lib/cn';
 import { Button } from '../ui/Button';
 import { Field } from '../ui/Field';
 import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
 import { FocusButton } from '../details/parts';
 import { LocationField } from './LocationField';
+import { PriceField } from './PriceField';
 
 interface StageEditorProps {
   trip: Trip;
@@ -221,37 +221,13 @@ export function StageEditor({
             </Field>
           </div>
 
-          <Field label="Prix du séjour">
-            <div className="flex items-center gap-1.5">
-              <Input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                value={acc?.price ?? ''}
-                placeholder="0"
-                onChange={(e) =>
-                  mutate((t) =>
-                    setAccommodation(t, stage.id, {
-                      price: e.target.value === '' ? undefined : Number(e.target.value),
-                    }),
-                  )
-                }
-              />
-              <Select
-                value={acc?.currency ?? '€'}
-                className="w-20"
-                onChange={(e) =>
-                  mutate((t) => setAccommodation(t, stage.id, { currency: e.target.value }))
-                }
-              >
-                {CURRENCIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          </Field>
+          <PriceField
+            label="Prix du séjour"
+            price={acc?.price}
+            currency={acc?.currency}
+            persons={acc?.persons}
+            onChange={(patch) => mutate((t) => setAccommodation(t, stage.id, patch))}
+          />
 
           <Field label="Modalités">
             <Textarea
@@ -292,7 +268,12 @@ export function StageEditor({
             {stage.places.map((place) => (
               <li
                 key={place.id}
-                className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5"
+                className={cn(
+                  'flex items-center gap-2 rounded-md border px-2 py-1.5',
+                  place.reserved
+                    ? 'border-amber-300 bg-amber-50/60 dark:border-amber-500/40 dark:bg-amber-500/5'
+                    : 'border-border',
+                )}
               >
                 <input
                   type="checkbox"
@@ -306,11 +287,12 @@ export function StageEditor({
                 />
                 <button
                   type="button"
-                  className="flex-1 truncate text-left text-sm hover:text-primary"
+                  className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left text-sm hover:text-primary"
                   onClick={() => onSelectPlace(stage.id, place.id)}
                 >
-                  <span className="mr-1">{PLACE_CATEGORIES[place.category].emoji}</span>
-                  {place.name}
+                  <span>{PLACE_CATEGORIES[place.category].emoji}</span>
+                  <span className="truncate">{place.name}</span>
+                  {place.reserved && <span title="Réservé">🎟️</span>}
                 </button>
                 <Button
                   variant="ghost"

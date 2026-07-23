@@ -28,6 +28,8 @@ export interface Accommodation {
   price?: number;
   /** Devise (¥, €, $…). */
   currency?: string;
+  /** Nombre de personnes couvertes par ce prix (défaut 1). */
+  persons?: number;
   notes?: string;
 }
 
@@ -51,6 +53,14 @@ export interface Place {
   googleMapsUrl?: string;
   notes?: string;
   visited: boolean;
+  /** Réservé / billet pris (mis en avant dans la liste pour ne pas l'oublier). */
+  reserved?: boolean;
+  /** Prix (billet, activité…). */
+  price?: number;
+  /** Devise (¥, €, $…). */
+  currency?: string;
+  /** Nombre de personnes couvertes par ce prix (défaut 1). */
+  persons?: number;
 }
 
 /** Étape = une base (là où l'on dort), les étapes sont ordonnées. */
@@ -89,6 +99,8 @@ export interface Transport {
   price?: number;
   /** Devise (¥, €, $…). */
   currency?: string;
+  /** Nombre de personnes couvertes par ce prix (défaut 1). */
+  persons?: number;
   notes?: string;
 }
 
@@ -117,6 +129,8 @@ export interface Flight {
   legs: FlightLeg[];
   price?: number;
   currency?: string;
+  /** Nombre de personnes couvertes par ce prix (défaut 1). */
+  persons?: number;
   notes?: string;
 }
 

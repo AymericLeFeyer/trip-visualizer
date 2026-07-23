@@ -58,6 +58,21 @@ export function DetailHeader({
   );
 }
 
+/** Badge mis en avant pour un lieu réservé (billet pris) — pour ne pas l'oublier. */
+export function ReservedBadge() {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
+      🎟️ Réservé
+    </span>
+  );
+}
+
+/** Formate un prix + devise pour l'affichage (défaut €). */
+export function formatPrice(price?: number, currency?: string): string | null {
+  if (price == null) return null;
+  return `${price}${currency ?? '€'}`;
+}
+
 export function InfoLine({ label, children }: { label: string; children: ReactNode }) {
   if (!children) return null;
   return (
@@ -127,6 +142,7 @@ export function PlaceLine({
   onClick?: () => void;
 }) {
   const distance = distanceLabel(origin, place.location);
+  const price = formatPrice(place.price, place.currency);
   const inner = (
     <>
       <div className="flex items-center gap-1.5">
@@ -137,6 +153,12 @@ export function PlaceLine({
         {distance && (
           <span className="shrink-0 text-xs font-normal text-muted-foreground">· {distance}</span>
         )}
+        {place.reserved && <ReservedBadge />}
+        {price && (
+          <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+            {price}
+          </span>
+        )}
         {onClick && <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />}
       </div>
       {place.notes && <p className="mt-0.5 text-xs text-muted-foreground">{place.notes}</p>}
@@ -144,13 +166,17 @@ export function PlaceLine({
     </>
   );
 
+  const reservedRing = place.reserved
+    ? 'border-amber-300 bg-amber-50/60 dark:border-amber-500/40 dark:bg-amber-500/5'
+    : 'border-border';
+
   if (onClick) {
     return (
       <li>
         <button
           type="button"
           onClick={onClick}
-          className="w-full rounded-md border border-border p-2 text-left text-sm transition-colors hover:bg-muted"
+          className={`w-full rounded-md border p-2 text-left text-sm transition-colors hover:bg-muted ${reservedRing}`}
         >
           {inner}
         </button>
@@ -158,5 +184,5 @@ export function PlaceLine({
     );
   }
 
-  return <li className="rounded-md border border-border p-2 text-sm">{inner}</li>;
+  return <li className={`rounded-md border p-2 text-sm ${reservedRing}`}>{inner}</li>;
 }

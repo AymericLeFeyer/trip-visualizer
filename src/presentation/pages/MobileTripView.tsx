@@ -143,8 +143,16 @@ function PlaceCard({
 }) {
   const cat = PLACE_CATEGORIES[place.category];
   const distance = distanceLabel(origin, place.location);
+  const price = place.price != null ? `${place.price}${place.currency ?? '€'}` : null;
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-2.5">
+    <div
+      className={cn(
+        'flex items-center gap-2 rounded-xl border bg-card p-2.5',
+        place.reserved
+          ? 'border-amber-300 bg-amber-50/60 dark:border-amber-500/40 dark:bg-amber-500/5'
+          : 'border-border',
+      )}
+    >
       <button onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-3 text-left">
         <span className="text-2xl leading-none">{cat.emoji}</span>
         <div className="min-w-0">
@@ -152,13 +160,20 @@ function PlaceCard({
             <span className={cn('truncate font-medium', place.visited && 'text-muted-foreground line-through')}>
               {place.name}
             </span>
-            {distance && (
-              <span className="shrink-0 text-xs font-normal text-muted-foreground">· {distance}</span>
+            {place.reserved && (
+              <span
+                className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-500/20 dark:text-amber-300"
+                title="Réservé"
+              >
+                🎟️
+              </span>
             )}
           </div>
-          {place.address && (
-            <div className="truncate text-xs text-muted-foreground">{place.address}</div>
-          )}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            {place.address && <span className="truncate">{place.address}</span>}
+            {distance && <span className="shrink-0">· {distance}</span>}
+            {price && <span className="shrink-0 font-medium tabular-nums">· {price}</span>}
+          </div>
         </div>
       </button>
       <MapsLink url={place.googleMapsUrl} />
@@ -373,12 +388,20 @@ function PlaceContent({
           {cat.emoji}
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className={cn('text-lg font-bold leading-tight', place.visited && 'line-through')}>
-            {place.name}
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className={cn('truncate text-lg font-bold leading-tight', place.visited && 'line-through')}>
+              {place.name}
+            </h2>
+            {place.reserved && (
+              <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
+                🎟️ Réservé
+              </span>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground">
             {cat.label}
             {distance && ` · ${distance} de l'hébergement`}
+            {place.price != null && ` · ${place.price}${place.currency ?? '€'}`}
             {place.visited && ' · déjà visité'}
           </p>
         </div>

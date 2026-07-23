@@ -10,6 +10,7 @@ import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
 import { FocusButton } from '../details/parts';
 import { LocationField } from './LocationField';
+import { PriceField } from './PriceField';
 
 interface PlaceEditorProps {
   trip: Trip;
@@ -80,16 +81,33 @@ export function PlaceEditor({
             </Select>
           </Field>
           <Field label="Statut">
-            <label className="flex h-9 items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={place.visited}
-                onChange={(e) => patch({ visited: e.target.checked })}
-              />
-              Déjà visité
-            </label>
+            <div className="flex h-9 items-center gap-4 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={place.visited}
+                  onChange={(e) => patch({ visited: e.target.checked })}
+                />
+                Déjà visité
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={place.reserved ?? false}
+                  onChange={(e) => patch({ reserved: e.target.checked })}
+                />
+                🎟️ Réservé
+              </label>
+            </div>
           </Field>
         </div>
+
+        <PriceField
+          price={place.price}
+          currency={place.currency}
+          persons={place.persons}
+          onChange={patch}
+        />
 
         <LocationField
           address={place.address ?? ''}

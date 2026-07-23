@@ -1,6 +1,6 @@
 # CLAUDE.md — Trip Visualizer
 
-> Dernière mise à jour : 2026-07-22 (ajout budget/stats)
+> Dernière mise à jour : 2026-07-23 (prix + réservé sur les lieux, nb de personnes, budget par personne)
 
 App web pour visualiser un voyage (Japon) sur une carte : étapes ordonnées (nuits) + lieux satellites sans ordre. Autosave, partage par lien, **sans authentification**.
 
@@ -47,10 +47,10 @@ src/presentation/            # pages/, components/ (map, panels, details, ui), h
 ### Entités (`shared/types/trip.ts`)
 - **Trip** : `id, title, description?, stages[], transports[], createdAt, updatedAt`
 - **Stage** (étape/nuit) : `id, name, color, emoji?, accommodation?, places[], transportToNext?, notes?` — `transportToNext` = jambe de trajet vers l'étape suivante ; `emoji?` s'affiche dans le marqueur (sinon le numéro)
-- **Accommodation** : `name, address?, location?{lat,lng}, googleMapsUrl?, checkInDate?, checkOutDate?, arrivalTime?, departureTime?, modalities?, price?, currency?, notes?` — `price/currency` = coût du séjour (agrégé dans le budget)
-- **Place** (lieu satellite) : `id, name, category, address?, location?, googleMapsUrl?, notes?, visited`
-- **Transport** : `id, mode, label, from?, to?, date?, departureTime?, arrivalTime?, distanceKm?, reference?, price?, currency?, notes?` — `mode` inclut `car`. Seul usage restant : **jambe entre étapes** (`stage.transportToNext`).
-- **Flight** (`trip.outboundFlight?` / `trip.returnFlight?`) : `airport?, airportLocation?, date?, legs[], price?, currency?, notes?`. `airport(Location)` = aéroport du **pays visité** affiché sur la carte (arrivée pour l'aller, départ pour le retour).
+- **Accommodation** : `name, address?, location?{lat,lng}, googleMapsUrl?, checkInDate?, checkOutDate?, arrivalTime?, departureTime?, modalities?, price?, currency?, persons?, notes?` — `price/currency` = coût du séjour (agrégé dans le budget) ; `persons?` = nb de personnes couvertes par le prix (défaut 1, sert au budget par personne)
+- **Place** (lieu satellite) : `id, name, category, address?, location?, googleMapsUrl?, notes?, visited, reserved?, price?, currency?, persons?` — `reserved?` = billet pris (mis en avant : bordure ambre + badge 🎟️ dans toutes les listes/détails, pour ne pas l'oublier) ; `price/currency/persons` = coût de l'activité (agrégé dans le budget, catégorie **Lieux**)
+- **Transport** : `id, mode, label, from?, to?, date?, departureTime?, arrivalTime?, distanceKm?, reference?, price?, currency?, persons?, notes?` — `mode` inclut `car`. Seul usage restant : **jambe entre étapes** (`stage.transportToNext`).
+- **Flight** (`trip.outboundFlight?` / `trip.returnFlight?`) : `airport?, airportLocation?, date?, legs[], price?, currency?, persons?, notes?`. `airport(Location)` = aéroport du **pays visité** affiché sur la carte (arrivée pour l'aller, départ pour le retour).
 - **FlightLeg** (segment / correspondance) : `id, flightNumber?, from?, to?, departureTime?, arrivalTime?`
 - ⚠️ Le système de « trajets libres » (`trip.transports[]`, `TransportPanel`, « Autres trajets ») a été **supprimé** au profit des vols aller/retour.
 - `TripInput = Omit<Trip,'id'|'createdAt'|'updatedAt'>`
@@ -117,7 +117,9 @@ src/presentation/            # pages/, components/ (map, panels, details, ui), h
 - **Emoji de lieu** : le marqueur (`PlacePin`) affiche `PLACE_CATEGORIES[category].emoji` dans une pastille (bordure = couleur d'étape), plus de rond nu.
 - **Ouvrir dans Google Maps** : `MapsSearchButton` (`details/parts.tsx`) + `mapsSearchUrl(query)` (`shared/lib/maps.ts`) construisent une URL de recherche Maps depuis l'**adresse** (fallback nom). Présent sur l'hébergement d'étape (`AccommodationBlock`, `LocationField`) et sur les lieux (`PlaceDetail`, `PlaceEditor` via `LocationField`, mobile). ≠ `googleMapsUrl` (lien manuel saisi).
 
-- **Budget / stats (admin uniquement)** : `BudgetModal` (`panels/`) affiche le total dépensé par catégorie (**Vols** = aller+retour, **Hébergements** = `stage.accommodation.price`, **Transports** = `stage.transportToNext.price`) + total global. Calcul pur dans `src/shared/lib/budget.ts` (`computeBudget(trip, rate)` → `{ lines, byCategory, totalEur, totalJpy }`, helpers `formatEur/formatJpy`, `toEur(amount, currency, rate)`). **Taux € ↔ ¥ variable** saisi dans un champ, persisté `localStorage` (`trip-visualizer.jpyRate`, défaut 165) ; `rate` = nb de ¥ pour 1 €. Conversion : `¥ → /rate`, tout le reste traité comme € (données réalistes = € ou ¥). Ouverte par un bouton **Wallet** dans la sidebar (desktop) et la barre supérieure (mobile), **rendu `isAdmin` uniquement**.
+- **Saisie de prix (`PriceField`, `panels/`)** : bloc réutilisé partout (`FlightEditor`, hébergement dans `StageEditor`, `TransportFields`, `PlaceEditor`) = montant + devise (`CURRENCIES`) + **nombre de personnes** (`persons`, défaut 1). `onChange` renvoie un `Partial` fusionné dans l'entité via la mutation adaptée. `defaultCurrency` = `¥` pour les transports, `€` ailleurs.
+- **Budget / stats (admin uniquement)** : `BudgetModal` (`panels/`) affiche le total par catégorie (**Vols** = aller+retour, **Hébergements** = `stage.accommodation.price`, **Transports** = `stage.transportToNext.price`, **Lieux** = `place.price`) + total global. Calcul pur dans `src/shared/lib/budget.ts` (`computeBudget(trip, rate)` → `{ lines, byCategory, byCategoryPerPerson, totalEur, totalEurPerPerson, totalJpy }`, helpers `formatEur/formatJpy`, `toEur(amount, currency, rate)`). Chaque `BudgetLine` porte `persons` + `eurPerPerson` (= `eur / persons`). **Bascule Total / Par personne** (state local `perPerson`) : en mode « par personne », total et catégories utilisent `…PerPerson` et chaque ligne affiche `eurPerPerson`. Le **libellé transport** est reconstruit `stage.name → nextStage.name` (la jambe n'a pas de `label` éditable, `hideLabel`). **Taux € ↔ ¥ variable** saisi dans un champ, persisté `localStorage` (`trip-visualizer.jpyRate`, défaut 165) ; `rate` = nb de ¥ pour 1 €. Conversion : `¥ → /rate`, tout le reste traité comme € (données réalistes = € ou ¥). Ouverte par un bouton **Wallet** dans la sidebar (desktop) et la barre supérieure (mobile), **rendu `isAdmin` uniquement**.
+- **Lieu réservé** : `place.reserved` → helper `ReservedBadge` + `formatPrice` (`details/parts.tsx`). Affiché avec bordure ambre + badge 🎟️ dans `PlaceLine` (desktop), la liste de `StageEditor`, `PlaceDetail`, et côté mobile `PlaceCard`/`PlaceContent`.
 
 ## Points d'attention (pièges)
 

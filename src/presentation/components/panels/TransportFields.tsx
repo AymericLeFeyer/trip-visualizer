@@ -1,12 +1,13 @@
 import { Calculator } from 'lucide-react';
 import type { LatLng, Transport, TransportMode } from '@shared/types/trip';
-import { CURRENCIES, TRANSPORT_MODES } from '@/shared/constants/catalog';
+import { TRANSPORT_MODES } from '@/shared/constants/catalog';
 import { haversineKm } from '@/shared/lib/geo';
 import { Button } from '../ui/Button';
 import { Field } from '../ui/Field';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
+import { PriceField } from './PriceField';
 
 interface TransportFieldsProps {
   transport: Transport;
@@ -115,31 +116,13 @@ export function TransportFields({ transport, onPatch, hideLabel, from, to }: Tra
         </Field>
       </div>
 
-      <Field label="Prix à prévoir">
-        <div className="flex items-center gap-1.5">
-          <Input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            value={transport.price ?? ''}
-            placeholder="0"
-            onChange={(e) =>
-              onPatch({ price: e.target.value === '' ? undefined : Number(e.target.value) })
-            }
-          />
-          <Select
-            value={transport.currency ?? '¥'}
-            className="w-20"
-            onChange={(e) => onPatch({ currency: e.target.value })}
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </Select>
-        </div>
-      </Field>
+      <PriceField
+        price={transport.price}
+        currency={transport.currency}
+        persons={transport.persons}
+        defaultCurrency="¥"
+        onChange={onPatch}
+      />
 
       <Field label="Notes">
         <Textarea

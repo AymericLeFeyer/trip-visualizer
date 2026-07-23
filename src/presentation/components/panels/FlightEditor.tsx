@@ -1,6 +1,5 @@
 import { Crosshair, Plus, Trash2, X } from 'lucide-react';
 import type { Flight, Trip } from '@shared/types/trip';
-import { CURRENCIES } from '@/shared/constants/catalog';
 import { createFlightLeg } from '@/domain/trip/services/tripFactory';
 import {
   addFlightLeg,
@@ -15,10 +14,10 @@ import { cn } from '@/shared/lib/cn';
 import { Button } from '../ui/Button';
 import { Field } from '../ui/Field';
 import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
 import { AddressAutocomplete } from '../AddressAutocomplete';
 import { FocusButton } from '../details/parts';
+import { PriceField } from './PriceField';
 
 interface FlightEditorProps {
   side: FlightSide;
@@ -196,31 +195,12 @@ export function FlightEditor({
           )}
         </section>
 
-        <Field label="Prix à prévoir">
-          <div className="flex items-center gap-1.5">
-            <Input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              value={flight.price ?? ''}
-              placeholder="0"
-              onChange={(e) =>
-                set({ price: e.target.value === '' ? undefined : Number(e.target.value) })
-              }
-            />
-            <Select
-              value={flight.currency ?? '€'}
-              className="w-20"
-              onChange={(e) => set({ currency: e.target.value })}
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </Select>
-          </div>
-        </Field>
+        <PriceField
+          price={flight.price}
+          currency={flight.currency}
+          persons={flight.persons}
+          onChange={set}
+        />
 
         <Field label="Notes">
           <Textarea

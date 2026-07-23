@@ -23,9 +23,10 @@ const CATEGORY_META: Record<BudgetCategory, { label: string; emoji: string }> = 
   flights: { label: 'Vols', emoji: '✈️' },
   accommodation: { label: 'Hébergements', emoji: '🛏️' },
   transport: { label: 'Transports', emoji: '🚆' },
+  places: { label: 'Lieux / Activités', emoji: '🎟️' },
 };
 
-const CATEGORY_ORDER: BudgetCategory[] = ['flights', 'accommodation', 'transport'];
+const CATEGORY_ORDER: BudgetCategory[] = ['flights', 'accommodation', 'transport', 'places'];
 
 interface BudgetModalProps {
   trip: Trip;
@@ -36,8 +37,12 @@ interface BudgetModalProps {
 /** Page stats (admin) : total dépensé par catégorie avec conversion € ↔ ¥. */
 export function BudgetModal({ trip, open, onClose }: BudgetModalProps) {
   const [rate, setRate] = useState<number>(loadRate);
+  const [perPerson, setPerPerson] = useState(false);
 
   const budget = useMemo(() => computeBudget(trip, rate), [trip, rate]);
+
+  const total = perPerson ? budget.totalEurPerPerson : budget.totalEur;
+  const byCategory = perPerson ? budget.byCategoryPerPerson : budget.byCategory;
 
   const updateRate = (value: number) => {
     setRate(value);
@@ -70,21 +75,44 @@ export function BudgetModal({ trip, open, onClose }: BudgetModalProps) {
             </div>
           </div>
 
+          {/* Bascule Total / Par personne */}
+          <div className="flex rounded-lg border border-border p-0.5 text-sm">
+            <button
+              type="button"
+              onClick={() => setPerPerson(false)}
+              className={`flex-1 rounded-md px-3 py-1.5 font-medium transition-colors ${
+                perPerson ? 'text-muted-foreground hover:bg-muted' : 'bg-primary text-primary-foreground'
+              }`}
+            >
+              Total
+            </button>
+            <button
+              type="button"
+              onClick={() => setPerPerson(true)}
+              className={`flex-1 rounded-md px-3 py-1.5 font-medium transition-colors ${
+                perPerson ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              Par personne
+            </button>
+          </div>
+
           {/* Total mis en avant */}
           <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-center">
             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Total dépensé
+              {perPerson ? 'Coût par personne' : 'Total dépensé'}
             </div>
-            <div className="mt-1 text-3xl font-bold text-primary">{formatEur(budget.totalEur)}</div>
-            <div className="text-sm text-muted-foreground">≈ {formatJpy(budget.totalJpy)}</div>
+            <div className="mt-1 text-3xl font-bold text-primary">{formatEur(total)}</div>
+            <div className="text-sm text-muted-foreground">≈ {formatJpy(total * rate)}</div>
           </div>
 
           {/* Détail par catégorie */}
           <div className="space-y-2">
             {CATEGORY_ORDER.map((category) => {
               const meta = CATEGORY_META[category];
-              const eur = budget.byCategory[category];
+              const eur = byCategory[category];
               const lines = budget.lines.filter((l) => l.category === category);
+              if (lines.length === 0) return null;
               return (
                 <div key={category} className="rounded-lg border border-border">
                   <div className="flex items-center justify-between gap-2 px-3 py-2">
@@ -99,22 +127,24 @@ export function BudgetModal({ trip, open, onClose }: BudgetModalProps) {
                     </div>
                   </div>
 
-                  {lines.length > 0 && (
-                    <ul className="border-t border-border">
-                      {lines.map((line, index) => (
-                        <li
-                          key={`${line.label}-${index}`}
-                          className="flex items-center justify-between gap-2 px-3 py-1.5 text-sm"
-                        >
-                          <span className="min-w-0 truncate text-muted-foreground">{line.label}</span>
-                          <span className="shrink-0 tabular-nums">
-                            {line.amount}
-                            {line.currency}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <ul className="border-t border-border">
+                    {lines.map((line, index) => (
+                      <li
+                        key={`${line.label}-${index}`}
+                        className="flex items-center justify-between gap-2 px-3 py-1.5 text-sm"
+                      >
+                        <span className="min-w-0 truncate text-muted-foreground">
+                          {line.label}
+                          {line.persons > 1 && (
+                            <span className="ml-1 text-xs">· {line.persons} pers.</span>
+                          )}
+                        </span>
+                        <span className="shrink-0 tabular-nums">
+                          {perPerson ? formatEur(line.eurPerPerson) : `${line.amount}${line.currency}`}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               );
             })}
@@ -122,8 +152,8 @@ export function BudgetModal({ trip, open, onClose }: BudgetModalProps) {
 
           {budget.lines.length === 0 && (
             <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
-              Aucun prix renseigné pour l'instant. Ajoute des prix aux vols, hébergements et
-              transports pour voir le total.
+              Aucun prix renseigné pour l'instant. Ajoute des prix aux vols, hébergements,
+              transports et lieux pour voir le total.
             </p>
           )}
 
