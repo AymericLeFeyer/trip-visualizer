@@ -23,6 +23,8 @@ export interface DetailContentProps {
   onClose: () => void;
   /** Empile un tiroir par-dessus (vue par jour). */
   onPush?: (sel: NonNullable<Selection>) => void;
+  /** Sélection du tiroir enfant (au-dessus) → surligne l'item correspondant (vue par jour). */
+  childSelection?: Selection;
   /** Colonne simple pour les étapes (tiroir étroit desktop). */
   compact?: boolean;
 }
@@ -49,6 +51,7 @@ export function DetailContent({
   onFocus,
   onClose,
   onPush,
+  childSelection,
   compact,
 }: DetailContentProps) {
   const focusHandler = (location?: LatLng) => (location ? () => onFocus(location) : undefined);
@@ -65,6 +68,7 @@ export function DetailContent({
       <DayDetail
         trip={trip}
         date={selection.date}
+        childSelection={childSelection}
         onPush={onPush ?? (() => {})}
         onFocus={focus}
         onClose={onClose}

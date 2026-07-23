@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react';
 import {
+  CalendarDays,
   ChevronRight,
+  Clock,
   ExternalLink,
   KeyRound,
   Locate,
   MapPin,
   StickyNote,
+  Wallet,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -141,6 +144,26 @@ export function InfoLine({ label, children }: { label: string; children: ReactNo
   );
 }
 
+/** Ligne d'info préfixée d'une petite icône (remplace le libellé texte). `null` si vide. */
+export function IconLine({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: LucideIcon;
+  /** Info-bulle décrivant le champ (accessibilité). */
+  title?: string;
+  children: ReactNode;
+}) {
+  if (!children) return null;
+  return (
+    <div className="flex items-start gap-2 text-sm">
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-label={title} />
+      <span className="min-w-0 flex-1 break-words">{children}</span>
+    </div>
+  );
+}
+
 export function MapsLink({ url }: { url?: string }) {
   if (!url) return null;
   return (
@@ -160,25 +183,24 @@ export function AccommodationBlock({ acc }: { acc: Accommodation }) {
   return (
     <div className="space-y-1 rounded-md bg-muted/50 p-2.5">
       <div className="text-sm font-medium">🛏️ {acc.name}</div>
-      <InfoLine label="Adresse">{acc.address}</InfoLine>
-      <InfoLine label="Séjour">
+      <IconLine icon={MapPin} title="Adresse">{acc.address}</IconLine>
+      <IconLine icon={CalendarDays} title="Séjour">
         {[acc.checkInDate, acc.checkOutDate].filter(Boolean).map(formatLongDate).join(' → ')}
-      </InfoLine>
-      <InfoLine label="Horaires">
+      </IconLine>
+      <IconLine icon={Clock} title="Horaires">
         {[
           acc.arrivalTime && `arrivée ${acc.arrivalTime}`,
           acc.departureTime && `départ ${acc.departureTime}`,
         ]
           .filter(Boolean)
           .join(' · ')}
-      </InfoLine>
-      <InfoLine label="Prix">
+      </IconLine>
+      <IconLine icon={Wallet} title="Prix">
         {acc.price != null && `${acc.price}${acc.currency ?? '€'}`}
-      </InfoLine>
+      </IconLine>
       <NoteText icon={KeyRound}>{acc.modalities}</NoteText>
       <NoteText>{acc.notes}</NoteText>
       <div className="flex flex-wrap items-center gap-2 pt-1">
-        <MapsLink url={acc.googleMapsUrl} />
         <MapsSearchButton query={acc.address || acc.name} />
       </div>
     </div>

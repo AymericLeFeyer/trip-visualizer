@@ -1,3 +1,4 @@
+import { CircleCheck, Clock, MapPin, Milestone, Ruler, Tag, Ticket, Wallet } from 'lucide-react';
 import type { Place, Stage } from '@shared/types/trip';
 import { PLACE_CATEGORIES } from '@/shared/constants/catalog';
 import { distanceLabel } from '@/shared/lib/geo';
@@ -5,8 +6,7 @@ import { formatPlanned } from '@/shared/lib/date';
 import { ConfidentialBlock } from './ConfidentialBlock';
 import {
   DetailHeader,
-  InfoLine,
-  MapsLink,
+  IconLine,
   MapsSearchButton,
   NoteText,
   ReservedBadge,
@@ -43,23 +43,24 @@ export function PlaceDetail({ stage, place, onFocus, onClose }: PlaceDetailProps
 
       <div className="flex-1 space-y-2 overflow-y-auto p-4 scroll-thin">
         <StageImage url={place.imageUrl} className="mb-2" />
-        <InfoLine label="Étape">{stage.name}</InfoLine>
-        <InfoLine label="Catégorie">{cat.label}</InfoLine>
-        {planned && <InfoLine label="Prévu">{planned}</InfoLine>}
-        <InfoLine label="Statut">{place.visited ? 'Déjà visité' : 'À visiter'}</InfoLine>
-        {place.reserved && <InfoLine label="Réservation">Réservé / billet pris</InfoLine>}
+        <IconLine icon={Milestone} title="Étape">{stage.name}</IconLine>
+        <IconLine icon={Tag} title="Catégorie">{cat.label}</IconLine>
+        {planned && <IconLine icon={Clock} title="Prévu">{planned}</IconLine>}
+        <IconLine icon={CircleCheck} title="Statut">
+          {place.visited ? 'Déjà visité' : 'À visiter'}
+        </IconLine>
+        {place.reserved && <IconLine icon={Ticket} title="Réservation">Réservé / billet pris</IconLine>}
         {price && (
-          <InfoLine label="Prix">
+          <IconLine icon={Wallet} title="Prix">
             {price}
             {place.persons != null && place.persons > 1 && ` · ${place.persons} pers.`}
-          </InfoLine>
+          </IconLine>
         )}
-        {distance && <InfoLine label="Distance">{distance} de l'hébergement</InfoLine>}
-        <InfoLine label="Adresse">{place.address}</InfoLine>
+        {distance && <IconLine icon={Ruler} title="Distance">{distance} de l'hébergement</IconLine>}
+        <IconLine icon={MapPin} title="Adresse">{place.address}</IconLine>
         <NoteText>{place.notes}</NoteText>
         <ConfidentialBlock text={place.confidential} />
         <div className="flex flex-wrap items-center gap-2 pt-1">
-          <MapsLink url={place.googleMapsUrl} />
           <MapsSearchButton query={place.address || place.name} />
         </div>
       </div>

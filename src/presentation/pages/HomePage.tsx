@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2, MapPinned, Plus, Trash2 } from 'lucide-react';
 import type { TripSummary } from '@shared/types/trip';
 import { tripRepository } from '@/infrastructure/trip/HttpTripRepository';
+import { useAdminMode } from '@/presentation/mode/AdminModeProvider';
 import { Button } from '@/presentation/components/ui/Button';
 
 export function HomePage() {
   const navigate = useNavigate();
+  const { isAdmin } = useAdminMode();
   const [trips, setTrips] = useState<TripSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -78,15 +80,17 @@ export function HomePage() {
                   {new Date(trip.updatedAt).toLocaleDateString('fr-FR')}
                 </div>
               </button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-red-600"
-                onClick={() => handleDelete(trip.id)}
-                title="Supprimer"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-red-600"
+                  onClick={() => handleDelete(trip.id)}
+                  title="Supprimer"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </li>
           ))}
         </ul>

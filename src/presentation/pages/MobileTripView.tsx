@@ -293,7 +293,6 @@ function StageContent({
                 <div className="text-xs text-muted-foreground">{acc.address}</div>
               )}
             </div>
-            <MapsLink url={acc.googleMapsUrl} />
           </div>
           {(acc.arrivalTime || acc.departureTime) && (
             <div className="text-xs text-muted-foreground">
@@ -472,16 +471,6 @@ function PlaceContent({
       <div className="flex flex-wrap items-center gap-2">
         {place.location && <FocusPill onClick={() => onFocus(place.location)} />}
         <MapsSearchButton query={place.address || place.name} />
-        {place.googleMapsUrl && (
-          <a
-            href={place.googleMapsUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-primary hover:bg-muted"
-          >
-            <ExternalLink className="h-3.5 w-3.5" /> Ouvrir le lien
-          </a>
-        )}
         {isAdmin && (
           <button
             onClick={onToggleVisited}

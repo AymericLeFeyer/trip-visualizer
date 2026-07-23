@@ -11,6 +11,8 @@ import { DetailHeader } from '../details/parts';
 interface DayDetailProps {
   trip: Trip;
   date: string;
+  /** Sélection du tiroir enfant → surligne l'item ouvert du programme. */
+  childSelection?: Selection;
   /** Empile un nouveau tiroir (lieu, transport, vol, étape) par-dessus la journée. */
   onPush: (sel: NonNullable<Selection>) => void;
   onFocus?: () => void;
@@ -25,6 +27,8 @@ interface ProgramItem {
   sub?: string;
   /** `travel` (vols/trajets) = bordure en pointillés ; `place` = lieu à visiter. */
   variant: 'travel' | 'place';
+  /** L'item est ouvert dans le tiroir enfant → surligné. */
+  selected: boolean;
   onClick: () => void;
 }
 
@@ -36,8 +40,11 @@ function ProgramRow({ item }: { item: ProgramItem }) {
         type="button"
         onClick={item.onClick}
         className={cn(
-          'flex w-full items-start gap-2.5 rounded-lg border p-2.5 text-left transition-colors hover:bg-muted',
-          item.variant === 'travel' ? 'border-dashed border-border' : 'border-border',
+          'flex w-full items-start gap-2.5 rounded-lg border p-2.5 text-left transition-colors',
+          item.variant === 'travel' && 'border-dashed',
+          item.selected
+            ? 'border-primary bg-primary/5'
+            : cn('border-border hover:bg-muted'),
         )}
       >
         <span className="w-11 shrink-0 pt-0.5 text-xs font-semibold tabular-nums text-primary">
@@ -59,7 +66,7 @@ function ProgramRow({ item }: { item: ProgramItem }) {
  * chronologique fusionnant vols, **transports (= étapes à faire du jour)** et
  * lieux planifiés. Chaque item empile un tiroir (`onPush`).
  */
-export function DayDetail({ trip, date, onPush, onFocus, onClose }: DayDetailProps) {
+export function DayDetail({ trip, date, childSelection, onPush, onFocus, onClose }: DayDetailProps) {
   const day = useMemo(() => buildItinerary(trip).find((d) => d.date === date), [trip, date]);
 
   const program = useMemo<ProgramItem[]>(() => {
@@ -74,6 +81,7 @@ export function DayDetail({ trip, date, onPush, onFocus, onClose }: DayDetailPro
         label: f.side === 'outbound' ? 'Vol aller' : 'Vol retour',
         sub: f.flight.airport,
         variant: 'travel',
+        selected: childSelection?.kind === 'flight' && childSelection.side === f.side,
         onClick: () => onPush({ kind: 'flight', side: f.side }),
       });
     }
@@ -85,6 +93,7 @@ export function DayDetail({ trip, date, onPush, onFocus, onClose }: DayDetailPro
         label: `${l.stage.name}${l.nextStage ? ` → ${l.nextStage.name}` : ''}`,
         sub: [l.leg.from, l.leg.to].filter(Boolean).join(' → ') || undefined,
         variant: 'travel',
+        selected: childSelection?.kind === 'leg' && childSelection.stageId === l.stage.id,
         onClick: () => onPush({ kind: 'leg', stageId: l.stage.id }),
       });
     }
@@ -96,12 +105,13 @@ export function DayDetail({ trip, date, onPush, onFocus, onClose }: DayDetailPro
         label: p.place.name,
         sub: p.place.address,
         variant: 'place',
+        selected: childSelection?.kind === 'place' && childSelection.placeId === p.place.id,
         onClick: () => onPush({ kind: 'place', stageId: p.stage.id, placeId: p.place.id }),
       });
     }
 
     return items.sort((a, b) => (a.time ?? '99:99').localeCompare(b.time ?? '99:99'));
-  }, [day, onPush]);
+  }, [day, childSelection, onPush]);
 
   return (
     <div className="flex min-h-0 flex-col">
@@ -141,7 +151,12 @@ export function DayDetail({ trip, date, onPush, onFocus, onClose }: DayDetailPro
             <button
               type="button"
               onClick={() => onPush({ kind: 'stage', stageId: day.stage!.id })}
-              className="flex w-full items-start gap-3 rounded-lg border border-border bg-muted/40 p-3 text-left transition-colors hover:bg-muted"
+              className={cn(
+                'flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors',
+                childSelection?.kind === 'stage' && childSelection.stageId === day.stage.id
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border bg-muted/40 hover:bg-muted',
+              )}
             >
               <span
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"

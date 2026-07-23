@@ -43,14 +43,25 @@ export function TripPage() {
   const [placingTarget, setPlacingTarget] = useState<PlacingTarget>(null);
   const [focusTarget, setFocusTarget] = useState<{ location: LatLng; nonce: number } | null>(null);
 
+  const stageLocation = (stageId: string) =>
+    trip?.stages.find((s) => s.id === stageId)?.accommodation?.location;
   const placeLocation = (stageId: string, placeId: string) =>
     trip?.stages.find((s) => s.id === stageId)?.places.find((p) => p.id === placeId)?.location;
+  const focusStage = (stageId: string) => {
+    const loc = stageLocation(stageId);
+    if (loc) setFocusTarget({ location: loc, nonce: Date.now() });
+  };
   const focusPlace = (stageId: string, placeId: string) => {
     const loc = placeLocation(stageId, placeId);
     if (loc) setFocusTarget({ location: loc, nonce: Date.now() });
   };
 
   const selectStage = (stageId: string) => setStack([{ kind: 'stage', stageId }]);
+  // Sélection d'une étape depuis la sidebar/tiroir : recadre aussi la carte.
+  const selectStageFromList = (stageId: string) => {
+    selectStage(stageId);
+    focusStage(stageId);
+  };
   // Un lieu ouvre un 2ᵉ tiroir par-dessus son étape (contexte conservé).
   const selectPlace = (stageId: string, placeId: string) =>
     setStack([
@@ -69,7 +80,18 @@ export function TripPage() {
     if (isAdmin && !exists) mutate((t) => setFlight(t, side, createFlight()));
     setStack([{ kind: 'flight', side }]);
   };
-  const selectDay = (date: string) => setStack([{ kind: 'day', date }]);
+  const selectDay = (date: string) => {
+    setStack([{ kind: 'day', date }]);
+    // Recadre sur la base (hébergement) de la nuit correspondante.
+    const base = trip?.stages.find((s) => {
+      const ci = s.accommodation?.checkInDate;
+      const co = s.accommodation?.checkOutDate;
+      return ci != null && co != null && ci <= date && date < co;
+    });
+    if (base?.accommodation?.location) {
+      setFocusTarget({ location: base.accommodation.location, nonce: Date.now() });
+    }
+  };
   // Ouvre `sel` comme tiroir enfant du tiroir d'index `index` : remplace tout ce
   // qui était au-dessus (un seul lieu ouvert à la fois depuis une journée).
   const pushFrom = (index: number, sel: NonNullable<Selection>) =>
@@ -182,7 +204,7 @@ export function TripPage() {
         viewMode={viewMode}
         mutate={mutate}
         onToggleView={toggleView}
-        onSelectStage={selectStage}
+        onSelectStage={selectStageFromList}
         onSelectLeg={selectLeg}
         onSelectFlight={selectFlight}
         onSelectDay={selectDay}
@@ -201,11 +223,13 @@ export function TripPage() {
               placingTarget={placingTarget}
               mutate={mutate}
               setPlacingTarget={setPlacingTarget}
+              childSelection={stack[i + 1] ?? null}
               onSelectStage={selectStage}
               onSelectPlace={selectPlaceFromDrawer}
               onPush={(sel2) => {
                 pushFrom(i, sel2);
                 if (sel2.kind === 'place') focusPlace(sel2.stageId, sel2.placeId);
+                else if (sel2.kind === 'stage') focusStage(sel2.stageId);
               }}
               onFocus={focusInDrawer}
               onClose={() => closeFrom(i)}
