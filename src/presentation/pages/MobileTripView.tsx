@@ -592,6 +592,7 @@ function DayContent({
           time: f.flight.legs[0]?.departureTime,
           emoji: '✈️',
           label: f.side === 'outbound' ? 'Vol aller' : 'Vol retour',
+          travel: true,
           onClick: () => onOpenFlight(f.side),
         })),
         ...day.legs.map((l) => ({
@@ -599,6 +600,7 @@ function DayContent({
           time: l.leg.departureTime,
           emoji: TRANSPORT_MODES[l.leg.mode].emoji,
           label: l.leg.label || `${l.stage.name}${l.nextStage ? ` → ${l.nextStage.name}` : ''}`,
+          travel: true,
           onClick: () => onOpenStage(l.stage.id),
         })),
         ...day.places.map((p) => ({
@@ -606,10 +608,11 @@ function DayContent({
           time: p.place.plannedTime,
           emoji: PLACE_CATEGORIES[p.place.category].emoji,
           label: p.place.name,
+          travel: false,
           onClick: () => onOpenPlace(p.stage.id, p.place.id),
         })),
       ].sort((a, b) => (a.time ?? '99:99').localeCompare(b.time ?? '99:99'))
-    : []) as { key: string; time?: string; emoji: string; label: string; onClick: () => void }[];
+    : []) as { key: string; time?: string; emoji: string; label: string; travel: boolean; onClick: () => void }[];
 
   return (
     <div className="space-y-4">
@@ -646,14 +649,24 @@ function DayContent({
             <button
               key={item.key}
               onClick={item.onClick}
-              className="flex w-full items-center gap-3 rounded-xl border border-border bg-card p-2.5 text-left transition-colors hover:bg-muted"
+              className={cn(
+                'flex w-full items-start gap-2.5 rounded-xl border p-2.5 text-left transition-colors',
+                item.travel
+                  ? 'border-sky-300 bg-sky-50 hover:bg-sky-100 dark:border-sky-500/40 dark:bg-sky-500/10'
+                  : 'border-border bg-card hover:bg-muted',
+              )}
             >
-              <span className="w-11 shrink-0 text-xs font-semibold tabular-nums text-primary">
+              <span
+                className={cn(
+                  'w-11 shrink-0 pt-0.5 text-xs font-semibold tabular-nums',
+                  item.travel ? 'text-sky-700 dark:text-sky-300' : 'text-primary',
+                )}
+              >
                 {item.time ?? '—'}
               </span>
-              <span className="text-xl">{item.emoji}</span>
-              <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.label}</span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="shrink-0 text-xl leading-tight">{item.emoji}</span>
+              <span className="min-w-0 flex-1 break-words text-sm font-medium">{item.label}</span>
+              <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
             </button>
           ))
         ) : (
@@ -662,6 +675,33 @@ function DayContent({
           </p>
         )}
       </div>
+
+      {/* Hébergement = fin de journée */}
+      {day?.stage && (
+        <div className="space-y-1.5">
+          <h3 className="text-sm font-semibold">Nuit</h3>
+          <button
+            onClick={() => onOpenStage(day.stage!.id)}
+            className="flex w-full items-start gap-3 rounded-xl border border-border bg-muted/40 p-3 text-left transition-colors hover:bg-muted"
+          >
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white"
+              style={{ background: day.stage.color }}
+            >
+              {day.stage.emoji ?? '🛏️'}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block break-words text-sm font-semibold">{day.stage.name}</span>
+              {day.stage.accommodation?.name && (
+                <span className="block break-words text-xs text-muted-foreground">
+                  🛏️ {day.stage.accommodation.name}
+                </span>
+              )}
+            </span>
+            <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -55,8 +55,10 @@ export function TripPage() {
     setStack([{ kind: 'flight', side }]);
   };
   const selectDay = (date: string) => setStack([{ kind: 'day', date }]);
-  // Empile un tiroir par-dessus (depuis la vue par jour).
-  const pushSelection = (sel: NonNullable<Selection>) => setStack((s) => [...s, sel]);
+  // Ouvre `sel` comme tiroir enfant du tiroir d'index `index` : remplace tout ce
+  // qui était au-dessus (un seul lieu ouvert à la fois depuis une journée).
+  const pushFrom = (index: number, sel: NonNullable<Selection>) =>
+    setStack((s) => [...s.slice(0, index + 1), sel]);
   // Ferme le tiroir d'index i et tous ceux au-dessus.
   const closeFrom = (index: number) => setStack((s) => s.slice(0, index));
   const clearSelection = () => setStack([]);
@@ -147,7 +149,6 @@ export function TripPage() {
           setPlacingTarget={setPlacingTarget}
           onSelectStage={selectStage}
           onSelectPlace={selectPlace}
-          onPush={pushSelection}
           onFocus={focusOnMap}
           onClose={clearSelection}
         />
@@ -172,23 +173,28 @@ export function TripPage() {
         onSelectDay={selectDay}
       />
 
-      {/* Desktop : tiroirs empilés redimensionnables (plus de modale), carte à droite. */}
-      {stack.map((sel, i) => (
-        <DetailDrawer
-          key={i}
-          trip={trip}
-          selection={sel}
-          isAdmin={isAdmin}
-          placingTarget={placingTarget}
-          mutate={mutate}
-          setPlacingTarget={setPlacingTarget}
-          onSelectStage={selectStage}
-          onSelectPlace={selectPlace}
-          onPush={pushSelection}
-          onFocus={focusInDrawer}
-          onClose={() => closeFrom(i)}
-        />
-      ))}
+      {/* Desktop : tiroirs empilés redimensionnables. Bornés en largeur (scroll
+          horizontal interne) pour toujours laisser ~260px de carte cliquable. */}
+      {stack.length > 0 && (
+        <div className="flex h-full max-w-[calc(100vw-600px)] shrink-0 overflow-x-auto">
+          {stack.map((sel, i) => (
+            <DetailDrawer
+              key={i}
+              trip={trip}
+              selection={sel}
+              isAdmin={isAdmin}
+              placingTarget={placingTarget}
+              mutate={mutate}
+              setPlacingTarget={setPlacingTarget}
+              onSelectStage={selectStage}
+              onSelectPlace={selectPlace}
+              onPush={(sel2) => pushFrom(i, sel2)}
+              onFocus={focusInDrawer}
+              onClose={() => closeFrom(i)}
+            />
+          ))}
+        </div>
+      )}
 
       <main className="relative min-w-0 flex-1">
         <TripMap

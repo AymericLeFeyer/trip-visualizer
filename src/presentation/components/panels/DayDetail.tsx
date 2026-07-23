@@ -5,6 +5,7 @@ import type { Selection } from '@/presentation/types';
 import { PLACE_CATEGORIES, TRANSPORT_MODES } from '@/shared/constants/catalog';
 import { buildItinerary } from '@/shared/lib/itinerary';
 import { formatLongDate } from '@/shared/lib/date';
+import { cn } from '@/shared/lib/cn';
 import { DetailHeader } from '../details/parts';
 
 interface DayDetailProps {
@@ -22,27 +23,39 @@ interface ProgramItem {
   emoji: string;
   label: string;
   sub?: string;
+  /** `travel` (vols/trajets) = couleur distincte ; `place` = lieu à visiter. */
+  variant: 'travel' | 'place';
   onClick: () => void;
 }
 
-/** Ligne cliquable du programme d'une journée. */
+/** Ligne cliquable du programme d'une journée (texte à la ligne = cliquable même étroit). */
 function ProgramRow({ item }: { item: ProgramItem }) {
   return (
     <li>
       <button
         type="button"
         onClick={item.onClick}
-        className="flex w-full items-center gap-3 rounded-lg border border-border p-2.5 text-left transition-colors hover:bg-muted"
+        className={cn(
+          'flex w-full items-start gap-2.5 rounded-lg border p-2.5 text-left transition-colors',
+          item.variant === 'travel'
+            ? 'border-sky-300 bg-sky-50 hover:bg-sky-100 dark:border-sky-500/40 dark:bg-sky-500/10 dark:hover:bg-sky-500/20'
+            : 'border-border hover:bg-muted',
+        )}
       >
-        <span className="w-11 shrink-0 text-xs font-semibold tabular-nums text-primary">
+        <span
+          className={cn(
+            'w-11 shrink-0 pt-0.5 text-xs font-semibold tabular-nums',
+            item.variant === 'travel' ? 'text-sky-700 dark:text-sky-300' : 'text-primary',
+          )}
+        >
           {item.time ?? '—'}
         </span>
-        <span className="text-lg">{item.emoji}</span>
+        <span className="shrink-0 text-lg leading-tight">{item.emoji}</span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium">{item.label}</span>
-          {item.sub && <span className="block truncate text-xs text-muted-foreground">{item.sub}</span>}
+          <span className="block break-words text-sm font-medium">{item.label}</span>
+          {item.sub && <span className="block break-words text-xs text-muted-foreground">{item.sub}</span>}
         </span>
-        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
       </button>
     </li>
   );
@@ -67,6 +80,7 @@ export function DayDetail({ trip, date, onPush, onFocus, onClose }: DayDetailPro
         emoji: '✈️',
         label: f.side === 'outbound' ? 'Vol aller' : 'Vol retour',
         sub: f.flight.airport,
+        variant: 'travel',
         onClick: () => onPush({ kind: 'flight', side: f.side }),
       });
     }
@@ -77,6 +91,7 @@ export function DayDetail({ trip, date, onPush, onFocus, onClose }: DayDetailPro
         emoji: TRANSPORT_MODES[l.leg.mode].emoji,
         label: l.leg.label || `${l.stage.name}${l.nextStage ? ` → ${l.nextStage.name}` : ''}`,
         sub: [l.leg.from, l.leg.to].filter(Boolean).join(' → ') || undefined,
+        variant: 'travel',
         onClick: () => onPush({ kind: 'leg', stageId: l.stage.id }),
       });
     }
@@ -87,6 +102,7 @@ export function DayDetail({ trip, date, onPush, onFocus, onClose }: DayDetailPro
         emoji: PLACE_CATEGORIES[p.place.category].emoji,
         label: p.place.name,
         sub: p.place.address,
+        variant: 'place',
         onClick: () => onPush({ kind: 'place', stageId: p.stage.id, placeId: p.place.id }),
       });
     }
@@ -103,31 +119,6 @@ export function DayDetail({ trip, date, onPush, onFocus, onClose }: DayDetailPro
       />
 
       <div className="flex-1 min-h-0 space-y-4 overflow-y-auto p-4 scroll-thin">
-        {/* Base de la nuit */}
-        {day?.stage && (
-          <button
-            type="button"
-            onClick={() => onPush({ kind: 'stage', stageId: day.stage!.id })}
-            className="flex w-full items-center gap-3 rounded-lg border border-border bg-muted/40 p-3 text-left transition-colors hover:bg-muted"
-          >
-            <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-              style={{ background: day.stage.color }}
-            >
-              {day.stage.emoji ?? trip.stages.findIndex((s) => s.id === day.stage!.id) + 1}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold">{day.stage.name}</span>
-              {day.stage.accommodation?.name && (
-                <span className="block truncate text-xs text-muted-foreground">
-                  🛏️ {day.stage.accommodation.name}
-                </span>
-              )}
-            </span>
-            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-          </button>
-        )}
-
         {day?.arrivalStage && day.arrivalStage.id !== day.stage?.id && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <MapPin className="h-4 w-4 shrink-0 text-primary" /> Arrivée à {day.arrivalStage.name}
@@ -149,6 +140,34 @@ export function DayDetail({ trip, date, onPush, onFocus, onClose }: DayDetailPro
             </p>
           )}
         </div>
+
+        {/* Hébergement = fin de journée (là où l'on dort ce soir) */}
+        {day?.stage && (
+          <div className="space-y-1.5">
+            <h3 className="text-sm font-semibold">Nuit</h3>
+            <button
+              type="button"
+              onClick={() => onPush({ kind: 'stage', stageId: day.stage!.id })}
+              className="flex w-full items-start gap-3 rounded-lg border border-border bg-muted/40 p-3 text-left transition-colors hover:bg-muted"
+            >
+              <span
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+                style={{ background: day.stage.color }}
+              >
+                {day.stage.emoji ?? trip.stages.findIndex((s) => s.id === day.stage!.id) + 1}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block break-words text-sm font-semibold">{day.stage.name}</span>
+                {day.stage.accommodation?.name && (
+                  <span className="block break-words text-xs text-muted-foreground">
+                    🛏️ {day.stage.accommodation.name}
+                  </span>
+                )}
+              </span>
+              <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
