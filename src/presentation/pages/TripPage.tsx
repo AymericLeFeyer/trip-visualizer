@@ -21,6 +21,19 @@ export function TripPage() {
   const isMobile = useIsMobile();
   const { isAdmin } = useAdminMode();
 
+  // Vue par étape (défaut) ou par jour. Persisté.
+  const [viewMode, setViewMode] = useState<'stages' | 'days'>(
+    () => (localStorage.getItem('trip-visualizer.viewMode') === 'days' ? 'days' : 'stages'),
+  );
+  const toggleView = () => {
+    setViewMode((v) => {
+      const next = v === 'stages' ? 'days' : 'stages';
+      localStorage.setItem('trip-visualizer.viewMode', next);
+      return next;
+    });
+    setStack([]);
+  };
+
   // Pile de sélections (desktop = tiroirs empilés : étape → lieu). Le dessus = actif.
   const [stack, setStack] = useState<NonNullable<Selection>[]>([]);
   const selection: Selection = stack.length ? stack[stack.length - 1] : null;
@@ -41,6 +54,9 @@ export function TripPage() {
     if (isAdmin && !exists) mutate((t) => setFlight(t, side, createFlight()));
     setStack([{ kind: 'flight', side }]);
   };
+  const selectDay = (date: string) => setStack([{ kind: 'day', date }]);
+  // Empile un tiroir par-dessus (depuis la vue par jour).
+  const pushSelection = (sel: NonNullable<Selection>) => setStack((s) => [...s, sel]);
   // Ferme le tiroir d'index i et tous ceux au-dessus.
   const closeFrom = (index: number) => setStack((s) => s.slice(0, index));
   const clearSelection = () => setStack([]);
@@ -112,7 +128,9 @@ export function TripPage() {
           mapSelection={mapSelection}
           placingMode={placingTarget !== null}
           focusTarget={focusTarget}
+          viewMode={viewMode}
           mutate={mutate}
+          onToggleView={toggleView}
           onSelectStage={selectStage}
           onSelectPlace={selectPlace}
           onSelectLeg={selectLeg}
@@ -129,6 +147,7 @@ export function TripPage() {
           setPlacingTarget={setPlacingTarget}
           onSelectStage={selectStage}
           onSelectPlace={selectPlace}
+          onPush={pushSelection}
           onFocus={focusOnMap}
           onClose={clearSelection}
         />
@@ -144,10 +163,13 @@ export function TripPage() {
         selection={selection}
         saveStatus={saveStatus}
         isAdmin={isAdmin}
+        viewMode={viewMode}
         mutate={mutate}
+        onToggleView={toggleView}
         onSelectStage={selectStage}
         onSelectLeg={selectLeg}
         onSelectFlight={selectFlight}
+        onSelectDay={selectDay}
       />
 
       {/* Desktop : tiroirs empilés redimensionnables (plus de modale), carte à droite. */}
@@ -162,6 +184,7 @@ export function TripPage() {
           setPlacingTarget={setPlacingTarget}
           onSelectStage={selectStage}
           onSelectPlace={selectPlace}
+          onPush={pushSelection}
           onFocus={focusInDrawer}
           onClose={() => closeFrom(i)}
         />

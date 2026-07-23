@@ -1,5 +1,6 @@
 import type { LatLng, Trip } from '@shared/types/trip';
 import type { PlacingTarget, Selection } from '@/presentation/types';
+import { DayDetail } from './DayDetail';
 import { StageDetail } from '../details/StageDetail';
 import { PlaceDetail } from '../details/PlaceDetail';
 import { LegDetail } from '../details/LegDetail';
@@ -20,6 +21,8 @@ export interface DetailContentProps {
   onSelectPlace: (stageId: string, placeId: string) => void;
   onFocus: (location: LatLng) => void;
   onClose: () => void;
+  /** Empile un tiroir par-dessus (vue par jour). */
+  onPush?: (sel: NonNullable<Selection>) => void;
   /** Colonne simple pour les étapes (tiroir étroit desktop). */
   compact?: boolean;
 }
@@ -45,10 +48,29 @@ export function DetailContent({
   onSelectPlace,
   onFocus,
   onClose,
+  onPush,
   compact,
 }: DetailContentProps) {
   const focusHandler = (location?: LatLng) => (location ? () => onFocus(location) : undefined);
   if (!selection) return null;
+
+  if (selection.kind === 'day') {
+    const base = trip.stages.find((s) => {
+      const ci = s.accommodation?.checkInDate;
+      const co = s.accommodation?.checkOutDate;
+      return ci != null && co != null && ci <= selection.date && selection.date < co;
+    });
+    const focus = focusHandler(base?.accommodation?.location);
+    return (
+      <DayDetail
+        trip={trip}
+        date={selection.date}
+        onPush={onPush ?? (() => {})}
+        onFocus={focus}
+        onClose={onClose}
+      />
+    );
+  }
 
   if (selection.kind === 'flight') {
     const flight = selection.side === 'outbound' ? trip.outboundFlight : trip.returnFlight;

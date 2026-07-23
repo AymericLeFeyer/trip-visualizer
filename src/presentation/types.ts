@@ -6,6 +6,7 @@ export type Selection =
   | { kind: 'place'; stageId: string; placeId: string }
   | { kind: 'leg'; stageId: string }
   | { kind: 'flight'; side: FlightSide }
+  | { kind: 'day'; date: string }
   | null;
 
 /** Cible en attente de placement au clic sur la carte. */

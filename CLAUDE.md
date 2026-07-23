@@ -1,8 +1,10 @@
 # CLAUDE.md — Trip Visualizer
 
-> Dernière mise à jour : 2026-07-23 (créneau + tri chrono des lieux, images lieux/étapes, infos confidentielles, vue jour par jour, tiroirs desktop empilés & redimensionnables)
+> Dernière mise à jour : 2026-07-23 (bascule vue par jour / par étape, tiroirs empilés & redimensionnables, retrait partage + description)
 
-App web pour visualiser un voyage (Japon) sur une carte : étapes ordonnées (nuits) + lieux satellites sans ordre. Autosave, partage par lien, **sans authentification**.
+App web pour visualiser un voyage (Japon) sur une carte : étapes ordonnées (nuits) + lieux satellites sans ordre. Autosave, **sans authentification**.
+
+> ⚠️ **Retirés** : le bouton « Partager le lien » (desktop + mobile) et l'affichage/édition de `trip.description` (sidebar + sheet). Le champ `description` reste dans le modèle mais n'est plus montré ni éditable (`defaultTrip` ne le remplit plus). L'ancien `ItineraryModal` a été remplacé par la vue par jour intégrée.
 
 ## Deux modes (visualisation / admin)
 
@@ -124,7 +126,8 @@ src/presentation/            # pages/, components/ (map, panels, details, ui), h
 - **Images (lieux & étapes)** : `imageUrl`. Composant `ImageField` (`panels/`) = aperçu + champ URL + bouton **« Au hasard »**. ⚠️ Google Images n'a **pas** d'API gratuite/sans clé → le bouton interroge **LoremFlickr** (`https://loremflickr.com/640/480/<mots-clés>?lock=<rnd>`, photos Flickr, sans clé, résultat aléatoire — « avec un peu de chance » ça colle). Affichage lecture seule via `StageImage` (`details/parts.tsx`, `onError` masque l'image cassée) dans les détails + contenus mobiles.
 - **Blocs de texte aérés (lecture)** : `NoteText` (`details/parts.tsx`, icône `lucide` + texte multiligne, `null` si vide) pour éviter les gros pavés en mode visuel. Utilisé pour notes/modalités/notes de vol dans `AccommodationBlock`/`StageDetail`/`PlaceDetail`/`LegDetail`/`FlightDetail` (icônes `StickyNote`, `KeyRound` pour modalités). Équivalent mobile = `SheetNote` (`MobileTripView`, style `rounded-xl`). Les **descriptions** de voyage (sidebar desktop + sheet mobile) sont préfixées d'un `Info`.
 - **Informations confidentielles** : `place.confidential` / `stage.confidential`. Saisies via un `Textarea` 🔒 dans les éditeurs. Affichées par `ConfidentialBlock` (`details/`) qui **s'auto-protège** via `useAdminMode` : rendu **uniquement si `isAdmin`** (code saisi), invisible sinon. Placé dans `PlaceDetail`/`StageDetail` + mobiles `PlaceContent`/`StageContent`.
-- **Vue jour par jour** : `buildItinerary(trip)` (`src/shared/lib/itinerary.ts`) → `DaySummary[]` (une entrée par jour entre min/max des dates saisies : `stage` base de la nuit `checkIn ≤ jour < checkOut`, `arrival/departureStage`, `flights`, `legs`, `places` triés par heure). Rendu par `ItineraryModal` (`panels/`), ouvert par un bouton **CalendarDays « Jour par jour »** dans la sidebar (desktop) et la barre supérieure (mobile) — accessible **en lecture seule aussi** (pas admin-only, ≠ budget). Vue résumé (pas de sélection au clic pour l'instant).
+- **Bascule Vue par étape / Vue par jour** (`viewMode: 'stages' | 'days'` dans `TripPage`, persisté `localStorage` `trip-visualizer.viewMode`). Un bouton **CalendarDays « Vue par jour » / List « Vue par étape »** (sidebar desktop + barre mobile) bascule et **vide la pile** de sélection. `buildItinerary(trip)` (`src/shared/lib/itinerary.ts`) → `DaySummary[]` (une entrée par jour entre min/max des dates : `stage` base `checkIn ≤ jour < checkOut`, `arrival/departureStage`, `flights`, `legs`, `places`).
+  - **Vue par jour = même système de tiroirs/sheet** : la liste (sidebar `DayList` / rail mobile) montre les **jours** ; cliquer un jour → sélection `{kind:'day', date}`. Contenu = `DayDetail` (desktop, `panels/`) / `DayContent` (mobile) : un **programme chronologique** unique fusionnant vols + **transports (= « étapes à faire dans la journée »)** + lieux, trié par heure. Chaque item **empile un tiroir** via `onPush` (desktop) ou navigue le sheet (mobile). `Selection` inclut `{kind:'day'}` ; `TripPage.pushSelection` ajoute au sommet de la pile (≠ `select*` qui réinitialisent).
 
 ## Points d'attention (pièges)
 

@@ -5,7 +5,6 @@ import type { TripInput } from '../shared/types/trip.ts';
 export function buildDefaultTrip(): TripInput {
   return {
     title: 'Voyage au Japon',
-    description: 'Itinéraire à personnaliser — clique sur une étape ou un lieu pour éditer.',
     outboundFlight: {
       airport: 'Aéroport de Tokyo Narita',
       airportLocation: { lat: 35.772, lng: 140.3929 },

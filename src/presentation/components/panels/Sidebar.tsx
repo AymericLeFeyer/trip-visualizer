@@ -1,12 +1,14 @@
 import { Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Check, Cloud, CloudOff, Info, Loader2, Plus, Share2, Wallet } from 'lucide-react';
+import { CalendarDays, Check, Cloud, CloudOff, List, Loader2, Plus, Wallet } from 'lucide-react';
 import type { Flight, Trip } from '@shared/types/trip';
 import { TRANSPORT_MODES } from '@/shared/constants/catalog';
 import { createStage, createTransport } from '@/domain/trip/services/tripFactory';
 import { addStage, patchTrip, setTransportLeg } from '@/domain/trip/services/tripMutations';
 import type { FlightSide } from '@/domain/trip/services/tripMutations';
 import { formatTransportSummary } from '@/shared/lib/transport';
+import { formatShortDate } from '@/shared/lib/date';
+import { buildItinerary } from '@/shared/lib/itinerary';
 import type { SaveStatus } from '@/presentation/hooks/useTrip';
 import type { Selection } from '@/presentation/types';
 import { cn } from '@/shared/lib/cn';
@@ -14,17 +16,19 @@ import { Button } from '../ui/Button';
 import { AdminLock } from '../AdminLock';
 import { ThemeToggle } from '../ThemeToggle';
 import { BudgetModal } from './BudgetModal';
-import { ItineraryModal } from './ItineraryModal';
 
 interface SidebarProps {
   trip: Trip;
   selection: Selection;
   saveStatus: SaveStatus;
   isAdmin: boolean;
+  viewMode: 'stages' | 'days';
   mutate: (updater: (trip: Trip) => Trip) => void;
+  onToggleView: () => void;
   onSelectStage: (stageId: string) => void;
   onSelectLeg: (stageId: string) => void;
   onSelectFlight: (side: FlightSide) => void;
+  onSelectDay: (date: string) => void;
 }
 
 /** Entrée « Vol aller / retour », rendue comme une étape bout de voyage. */
@@ -88,24 +92,15 @@ export function Sidebar({
   selection,
   saveStatus,
   isAdmin,
+  viewMode,
   mutate,
+  onToggleView,
   onSelectStage,
   onSelectLeg,
   onSelectFlight,
+  onSelectDay,
 }: SidebarProps) {
-  const [copied, setCopied] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
-  const [itineraryOpen, setItineraryOpen] = useState(false);
-
-  const handleShare = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard indisponible */
-    }
-  };
 
   const handleAddStage = () => {
     const stage = createStage(trip.stages.length);
@@ -132,44 +127,32 @@ export function Sidebar({
           </div>
         </div>
         {isAdmin ? (
-          <>
-            <input
-              value={trip.title}
-              onChange={(e) => mutate((t) => patchTrip(t, { title: e.target.value }))}
-              className="w-full bg-transparent text-lg font-bold outline-none focus:ring-0"
-              placeholder="Titre du voyage"
-            />
-            <textarea
-              value={trip.description ?? ''}
-              onChange={(e) => mutate((t) => patchTrip(t, { description: e.target.value }))}
-              placeholder="Description…"
-              rows={2}
-              className="w-full resize-none bg-transparent text-sm text-muted-foreground outline-none"
-            />
-          </>
+          <input
+            value={trip.title}
+            onChange={(e) => mutate((t) => patchTrip(t, { title: e.target.value }))}
+            className="w-full bg-transparent text-lg font-bold outline-none focus:ring-0"
+            placeholder="Titre du voyage"
+          />
         ) : (
-          <>
-            <h1 className="text-lg font-bold">{trip.title}</h1>
-            {trip.description && (
-              <div className="flex gap-2 text-sm text-muted-foreground">
-                <Info className="mt-0.5 h-4 w-4 shrink-0" />
-                <p className="min-w-0 flex-1">{trip.description}</p>
-              </div>
-            )}
-          </>
+          <h1 className="text-lg font-bold">{trip.title}</h1>
         )}
         <div className="flex gap-2">
-          <Button variant="secondary" size="sm" className="flex-1" onClick={handleShare}>
-            {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
-            {copied ? 'Lien copié !' : 'Partager le lien'}
-          </Button>
           <Button
             variant="secondary"
             size="sm"
-            title="Voir le voyage jour par jour"
-            onClick={() => setItineraryOpen(true)}
+            className="flex-1"
+            title={viewMode === 'stages' ? 'Basculer en vue par jour' : 'Basculer en vue par étape'}
+            onClick={onToggleView}
           >
-            <CalendarDays className="h-3.5 w-3.5" /> Jour par jour
+            {viewMode === 'stages' ? (
+              <>
+                <CalendarDays className="h-3.5 w-3.5" /> Vue par jour
+              </>
+            ) : (
+              <>
+                <List className="h-3.5 w-3.5" /> Vue par étape
+              </>
+            )}
           </Button>
           {isAdmin && (
             <Button
@@ -185,8 +168,10 @@ export function Sidebar({
       </div>
 
       <BudgetModal trip={trip} open={budgetOpen} onClose={() => setBudgetOpen(false)} />
-      <ItineraryModal trip={trip} open={itineraryOpen} onClose={() => setItineraryOpen(false)} />
 
+      {viewMode === 'days' ? (
+        <DayList trip={trip} selection={selection} onSelectDay={onSelectDay} />
+      ) : (
       <div className="flex-1 space-y-2 overflow-y-auto p-3 scroll-thin">
         <FlightRow
           side="outbound"
@@ -289,6 +274,61 @@ export function Sidebar({
           onSelect={onSelectFlight}
         />
       </div>
+      )}
     </aside>
+  );
+}
+
+/** Liste des journées (vue par jour). */
+function DayList({
+  trip,
+  selection,
+  onSelectDay,
+}: {
+  trip: Trip;
+  selection: Selection;
+  onSelectDay: (date: string) => void;
+}) {
+  const days = buildItinerary(trip);
+  if (days.length === 0) {
+    return (
+      <div className="flex-1 overflow-y-auto p-3 scroll-thin">
+        <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
+          Renseigne des dates (séjours, vols, créneaux) pour voir le voyage jour par jour.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="flex-1 space-y-2 overflow-y-auto p-3 scroll-thin">
+      {days.map((day, index) => {
+        const active = selection?.kind === 'day' && selection.date === day.date;
+        const count = day.flights.length + day.legs.length + day.places.length;
+        return (
+          <button
+            key={day.date}
+            onClick={() => onSelectDay(day.date)}
+            className={cn(
+              'flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors',
+              active ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted',
+            )}
+          >
+            <span
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+              style={{ background: day.stage?.color ?? '#64748b' }}
+            >
+              J{index + 1}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-medium capitalize">{formatShortDate(day.date)}</div>
+              <div className="truncate text-xs text-muted-foreground">
+                {day.stage ? day.stage.name : 'En transit'}
+                {count > 0 && ` · ${count} élément${count > 1 ? 's' : ''}`}
+              </div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
   );
 }

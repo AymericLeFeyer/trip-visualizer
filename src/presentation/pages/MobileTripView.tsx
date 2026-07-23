@@ -7,12 +7,11 @@ import {
   ChevronRight,
   ExternalLink,
   Eye,
-  Info,
   KeyRound,
+  List as ListIcon,
   Locate,
   Pencil,
   Plus,
-  Share2,
   StickyNote,
   Wallet,
   type LucideIcon,
@@ -23,8 +22,9 @@ import { createStage, createTransport } from '@/domain/trip/services/tripFactory
 import { addStage, setTransportLeg, updatePlace } from '@/domain/trip/services/tripMutations';
 import type { FlightSide } from '@/domain/trip/services/tripMutations';
 import { formatTransportSummary } from '@/shared/lib/transport';
-import { formatLongDate, formatPlanned, nightsLabel } from '@/shared/lib/date';
+import { formatLongDate, formatPlanned, formatShortDate, nightsLabel } from '@/shared/lib/date';
 import { sortPlacesChronologically } from '@/shared/lib/place';
+import { buildItinerary } from '@/shared/lib/itinerary';
 import { distanceLabel } from '@/shared/lib/geo';
 import type { SaveStatus } from '@/presentation/hooks/useTrip';
 import type { MapSelection } from '@/presentation/types';
@@ -36,7 +36,6 @@ import { QuickAddPlace } from '@/presentation/components/mobile/QuickAddPlace';
 import { MapsSearchButton } from '@/presentation/components/details/parts';
 import { ConfidentialBlock } from '@/presentation/components/details/ConfidentialBlock';
 import { BudgetModal } from '@/presentation/components/panels/BudgetModal';
-import { ItineraryModal } from '@/presentation/components/panels/ItineraryModal';
 import { cn } from '@/shared/lib/cn';
 
 interface MobileTripViewProps {
@@ -46,7 +45,9 @@ interface MobileTripViewProps {
   mapSelection: MapSelection;
   placingMode: boolean;
   focusTarget?: { location: LatLng; nonce: number } | null;
+  viewMode: 'stages' | 'days';
   mutate: (updater: (trip: Trip) => Trip) => void;
+  onToggleView: () => void;
   onSelectStage: (stageId: string) => void;
   onSelectPlace: (stageId: string, placeId: string) => void;
   onSelectLeg: (stageId: string) => void;
@@ -58,6 +59,7 @@ type Active =
   | { type: 'stage'; id: string }
   | { type: 'place'; stageId: string; placeId: string }
   | { type: 'flight'; side: FlightSide }
+  | { type: 'day'; date: string }
   | null;
 
 // --- Rail (navigation horizontale entre étapes) ---
@@ -566,6 +568,104 @@ function FlightContent({
   );
 }
 
+function DayContent({
+  trip,
+  date,
+  onOpenStage,
+  onOpenPlace,
+  onOpenFlight,
+  onFocus,
+}: {
+  trip: Trip;
+  date: string;
+  onOpenStage: (stageId: string) => void;
+  onOpenPlace: (stageId: string, placeId: string) => void;
+  onOpenFlight: (side: FlightSide) => void;
+  onFocus: (location?: LatLng) => void;
+}) {
+  const day = buildItinerary(trip).find((d) => d.date === date);
+
+  const program = (day
+    ? [
+        ...day.flights.map((f) => ({
+          key: `flight-${f.side}`,
+          time: f.flight.legs[0]?.departureTime,
+          emoji: '✈️',
+          label: f.side === 'outbound' ? 'Vol aller' : 'Vol retour',
+          onClick: () => onOpenFlight(f.side),
+        })),
+        ...day.legs.map((l) => ({
+          key: `leg-${l.stage.id}`,
+          time: l.leg.departureTime,
+          emoji: TRANSPORT_MODES[l.leg.mode].emoji,
+          label: l.leg.label || `${l.stage.name}${l.nextStage ? ` → ${l.nextStage.name}` : ''}`,
+          onClick: () => onOpenStage(l.stage.id),
+        })),
+        ...day.places.map((p) => ({
+          key: `place-${p.place.id}`,
+          time: p.place.plannedTime,
+          emoji: PLACE_CATEGORIES[p.place.category].emoji,
+          label: p.place.name,
+          onClick: () => onOpenPlace(p.stage.id, p.place.id),
+        })),
+      ].sort((a, b) => (a.time ?? '99:99').localeCompare(b.time ?? '99:99'))
+    : []) as { key: string; time?: string; emoji: string; label: string; onClick: () => void }[];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start gap-3">
+        <span
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl text-white"
+          style={{ background: day?.stage?.color ?? '#64748b' }}
+        >
+          🗓️
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-lg font-bold capitalize leading-tight">
+            {formatLongDate(date)}
+          </h2>
+          <p className="truncate text-xs text-muted-foreground">
+            {day?.stage ? day.stage.name : 'En transit'}
+          </p>
+        </div>
+        {day?.stage?.accommodation?.location && (
+          <button
+            onClick={() => onFocus(day.stage!.accommodation!.location)}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-primary hover:bg-muted"
+            title="Sur la carte"
+          >
+            <Locate className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold">Programme du jour ({program.length})</h3>
+        {program.length > 0 ? (
+          program.map((item) => (
+            <button
+              key={item.key}
+              onClick={item.onClick}
+              className="flex w-full items-center gap-3 rounded-xl border border-border bg-card p-2.5 text-left transition-colors hover:bg-muted"
+            >
+              <span className="w-11 shrink-0 text-xs font-semibold tabular-nums text-primary">
+                {item.time ?? '—'}
+              </span>
+              <span className="text-xl">{item.emoji}</span>
+              <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.label}</span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </button>
+          ))
+        ) : (
+          <p className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
+            {day?.stage ? `Journée libre à ${day.stage.name}.` : 'Rien de planifié ce jour.'}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function MobileTripView({
   trip,
   isAdmin,
@@ -573,28 +673,37 @@ export function MobileTripView({
   mapSelection,
   placingMode,
   focusTarget,
+  viewMode,
   mutate,
+  onToggleView,
   onSelectStage,
   onSelectPlace,
   onSelectLeg,
   onSelectFlight,
   onMapClick,
 }: MobileTripViewProps) {
-  const [copied, setCopied] = useState(false);
   const [snap, setSnap] = useState<SheetSnap>('half');
   const [addOpen, setAddOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
-  const [itineraryOpen, setItineraryOpen] = useState(false);
   const [mapFocus, setMapFocus] = useState<
     { location: LatLng; nonce: number; bottomInset?: number } | null | undefined
   >(focusTarget);
 
+  const days = useMemo(() => buildItinerary(trip), [trip]);
+
   const defaultActive = useMemo<Active>(() => {
+    if (viewMode === 'days') return days[0] ? { type: 'day', date: days[0].date } : null;
     if (trip.stages[0]) return { type: 'stage', id: trip.stages[0].id };
     if (trip.outboundFlight) return { type: 'flight', side: 'outbound' };
     return null;
-  }, [trip.stages, trip.outboundFlight]);
+  }, [viewMode, days, trip.stages, trip.outboundFlight]);
   const [active, setActive] = useState<Active>(defaultActive);
+
+  // Au changement de vue (jour ↔ étape), repartir sur l'élément par défaut.
+  useEffect(() => {
+    setActive(defaultActive);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode]);
 
   // Recentre la sélection si l'étape/le lieu actif disparaît.
   useEffect(() => {
@@ -634,16 +743,6 @@ export function MobileTripView({
     flyTo(loc, 'peek');
   };
 
-  const share = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard indisponible */
-    }
-  };
-
   const handleAddStage = () => {
     const stage = createStage(trip.stages.length);
     mutate((t) => addStage(t, stage));
@@ -673,6 +772,12 @@ export function MobileTripView({
     setSnap('half');
     flyTo(flightLoc(side), 'half');
   };
+  const pickDay = (date: string) => {
+    setActive({ type: 'day', date });
+    setSnap('half');
+    const base = days.find((d) => d.date === date)?.stage?.accommodation?.location;
+    flyTo(base, 'half');
+  };
 
   const activeStage =
     active?.type === 'stage' ? trip.stages.find((s) => s.id === active.id) : undefined;
@@ -698,7 +803,13 @@ export function MobileTripView({
   };
 
   const activeStageId =
-    active?.type === 'stage' ? active.id : active?.type === 'place' ? active.stageId : null;
+    active?.type === 'stage'
+      ? active.id
+      : active?.type === 'place'
+        ? active.stageId
+        : active?.type === 'day'
+          ? (days.find((d) => d.date === active.date)?.stage?.id ?? null)
+          : null;
   const selectedStageId = mapSelection.selectedStageId ?? activeStageId;
   const selectedPlaceId =
     mapSelection.selectedPlaceId ?? (active?.type === 'place' ? active.placeId : null);
@@ -749,18 +860,15 @@ export function MobileTripView({
         </div>
         <div className="pointer-events-auto flex items-center rounded-full border border-border bg-card/90 shadow-sm backdrop-blur">
           <button
-            onClick={share}
+            onClick={onToggleView}
             className="flex h-9 w-9 items-center justify-center text-foreground"
-            title="Partager"
+            title={viewMode === 'stages' ? 'Vue par jour' : 'Vue par étape'}
           >
-            {copied ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
-          </button>
-          <button
-            onClick={() => setItineraryOpen(true)}
-            className="flex h-9 w-9 items-center justify-center text-foreground"
-            title="Jour par jour"
-          >
-            <CalendarDays className="h-4 w-4" />
+            {viewMode === 'stages' ? (
+              <CalendarDays className="h-4 w-4" />
+            ) : (
+              <ListIcon className="h-4 w-4" />
+            )}
           </button>
           {isAdmin && (
             <button
@@ -793,52 +901,70 @@ export function MobileTripView({
         onSnapChange={setSnap}
         rail={
           <div className="flex gap-2 overflow-x-auto px-4 pb-3 pt-0.5 scroll-thin">
-            {(trip.outboundFlight || isAdmin) && (
-              <RailPill
-                active={active?.type === 'flight' && active.side === 'outbound'}
-                onClick={() => pickFlight('outbound')}
-              >
-                ✈️ Aller
-              </RailPill>
-            )}
-            {trip.stages.map((s, i) => (
-              <RailPill
-                key={s.id}
-                color={s.color}
-                active={
-                  (active?.type === 'stage' && active.id === s.id) ||
-                  (active?.type === 'place' && active.stageId === s.id)
-                }
-                onClick={() => pickStage(s.id)}
-              >
-                <span>{s.emoji ?? i + 1}</span>
-                {s.name}
-              </RailPill>
-            ))}
-            {(trip.returnFlight || isAdmin) && (
-              <RailPill
-                active={active?.type === 'flight' && active.side === 'return'}
-                onClick={() => pickFlight('return')}
-              >
-                ✈️ Retour
-              </RailPill>
-            )}
-            {isAdmin && (
-              <RailPill active={false} onClick={handleAddStage}>
-                <Plus className="h-3.5 w-3.5" /> Étape
-              </RailPill>
+            {viewMode === 'days' ? (
+              days.map((d, i) => (
+                <RailPill
+                  key={d.date}
+                  color={d.stage?.color}
+                  active={active?.type === 'day' && active.date === d.date}
+                  onClick={() => pickDay(d.date)}
+                >
+                  <span>J{i + 1}</span>
+                  {formatShortDate(d.date)}
+                </RailPill>
+              ))
+            ) : (
+              <>
+                {(trip.outboundFlight || isAdmin) && (
+                  <RailPill
+                    active={active?.type === 'flight' && active.side === 'outbound'}
+                    onClick={() => pickFlight('outbound')}
+                  >
+                    ✈️ Aller
+                  </RailPill>
+                )}
+                {trip.stages.map((s, i) => (
+                  <RailPill
+                    key={s.id}
+                    color={s.color}
+                    active={
+                      (active?.type === 'stage' && active.id === s.id) ||
+                      (active?.type === 'place' && active.stageId === s.id)
+                    }
+                    onClick={() => pickStage(s.id)}
+                  >
+                    <span>{s.emoji ?? i + 1}</span>
+                    {s.name}
+                  </RailPill>
+                ))}
+                {(trip.returnFlight || isAdmin) && (
+                  <RailPill
+                    active={active?.type === 'flight' && active.side === 'return'}
+                    onClick={() => pickFlight('return')}
+                  >
+                    ✈️ Retour
+                  </RailPill>
+                )}
+                {isAdmin && (
+                  <RailPill active={false} onClick={handleAddStage}>
+                    <Plus className="h-3.5 w-3.5" /> Étape
+                  </RailPill>
+                )}
+              </>
             )}
           </div>
         }
       >
-        {trip.description && snap === 'full' && (
-          <div className="mb-3 flex gap-2 text-sm text-muted-foreground">
-            <Info className="mt-0.5 h-4 w-4 shrink-0" />
-            <p className="min-w-0 flex-1">{trip.description}</p>
-          </div>
-        )}
-
-        {activePlace && activePlaceStage ? (
+        {active?.type === 'day' ? (
+          <DayContent
+            trip={trip}
+            date={active.date}
+            onOpenStage={(stageId) => pickStage(stageId)}
+            onOpenPlace={(stageId, placeId) => pickPlace(stageId, placeId)}
+            onOpenFlight={(side) => pickFlight(side)}
+            onFocus={(loc) => focusOnMap(loc)}
+          />
+        ) : activePlace && activePlaceStage ? (
           <PlaceContent
             stage={activePlaceStage}
             place={activePlace}
@@ -895,7 +1021,6 @@ export function MobileTripView({
       )}
 
       <BudgetModal trip={trip} open={budgetOpen} onClose={() => setBudgetOpen(false)} />
-      <ItineraryModal trip={trip} open={itineraryOpen} onClose={() => setItineraryOpen(false)} />
     </div>
   );
 }
