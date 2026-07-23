@@ -8,6 +8,7 @@ import {
   InfoLine,
   MapsLink,
   MapsSearchButton,
+  NoteText,
   ReservedBadge,
   StageImage,
   formatPrice,
@@ -55,9 +56,7 @@ export function PlaceDetail({ stage, place, onFocus, onClose }: PlaceDetailProps
         )}
         {distance && <InfoLine label="Distance">{distance} de l'hébergement</InfoLine>}
         <InfoLine label="Adresse">{place.address}</InfoLine>
-        <InfoLine label="Notes">
-          {place.notes && <span className="whitespace-pre-wrap">{place.notes}</span>}
-        </InfoLine>
+        <NoteText>{place.notes}</NoteText>
         <ConfidentialBlock text={place.confidential} />
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <MapsLink url={place.googleMapsUrl} />

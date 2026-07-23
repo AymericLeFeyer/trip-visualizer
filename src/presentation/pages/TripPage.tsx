@@ -45,10 +45,17 @@ export function TripPage() {
   const closeFrom = (index: number) => setStack((s) => s.slice(0, index));
   const clearSelection = () => setStack([]);
 
-  // « Focus » : recadre la carte sur le point et ferme les tiroirs.
+  // « Focus » mobile : recadre la carte et ferme la modale pour voir le point.
   const focusOnMap = (location: LatLng) => {
     setFocusTarget({ location, nonce: Date.now() });
     clearSelection();
+  };
+
+  // « Focus » desktop : garde les tiroirs ouverts. La carte est déjà réduite à
+  // l'espace à droite des tiroirs (frères flex) → le flyTo centre sur ce qu'il
+  // reste de carte visible, sans avoir à calculer d'inset.
+  const focusInDrawer = (location: LatLng) => {
+    setFocusTarget({ location, nonce: Date.now() });
   };
 
   const handleMapClick = (location: LatLng) => {
@@ -155,7 +162,7 @@ export function TripPage() {
           setPlacingTarget={setPlacingTarget}
           onSelectStage={selectStage}
           onSelectPlace={selectPlace}
-          onFocus={focusOnMap}
+          onFocus={focusInDrawer}
           onClose={() => closeFrom(i)}
         />
       ))}

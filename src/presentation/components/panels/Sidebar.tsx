@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Check, Cloud, CloudOff, Loader2, Plus, Share2, Wallet } from 'lucide-react';
+import { CalendarDays, Check, Cloud, CloudOff, Info, Loader2, Plus, Share2, Wallet } from 'lucide-react';
 import type { Flight, Trip } from '@shared/types/trip';
 import { TRANSPORT_MODES } from '@/shared/constants/catalog';
 import { createStage, createTransport } from '@/domain/trip/services/tripFactory';
@@ -151,7 +151,10 @@ export function Sidebar({
           <>
             <h1 className="text-lg font-bold">{trip.title}</h1>
             {trip.description && (
-              <p className="text-sm text-muted-foreground">{trip.description}</p>
+              <div className="flex gap-2 text-sm text-muted-foreground">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <p className="min-w-0 flex-1">{trip.description}</p>
+              </div>
             )}
           </>
         )}

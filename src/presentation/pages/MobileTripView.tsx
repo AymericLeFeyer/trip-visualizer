@@ -7,11 +7,15 @@ import {
   ChevronRight,
   ExternalLink,
   Eye,
+  Info,
+  KeyRound,
   Locate,
   Pencil,
   Plus,
   Share2,
+  StickyNote,
   Wallet,
+  type LucideIcon,
 } from 'lucide-react';
 import type { Flight, LatLng, Place, Stage, Trip } from '@shared/types/trip';
 import { PLACE_CATEGORIES, TRANSPORT_MODES } from '@/shared/constants/catalog';
@@ -112,6 +116,17 @@ function MapsLink({ url }: { url?: string }) {
     >
       <ExternalLink className="h-4 w-4" />
     </a>
+  );
+}
+
+/** Bloc de texte (notes, modalités, description) avec une petite icône. */
+function SheetNote({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactNode }) {
+  if (!children) return null;
+  return (
+    <div className="flex gap-2 rounded-xl border border-border p-3">
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+      <p className="min-w-0 flex-1 whitespace-pre-wrap text-sm text-muted-foreground">{children}</p>
+    </div>
   );
 }
 
@@ -295,7 +310,10 @@ function StageContent({
             </div>
           )}
           {acc.modalities && (
-            <p className="whitespace-pre-wrap text-xs text-muted-foreground">{acc.modalities}</p>
+            <div className="flex gap-1.5 text-xs text-muted-foreground">
+              <KeyRound className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span className="min-w-0 flex-1 whitespace-pre-wrap">{acc.modalities}</span>
+            </div>
           )}
           <div className="flex flex-wrap items-center gap-2 pt-0.5">
             {acc.location && <FocusPill onClick={() => onFocus(acc.location)} />}
@@ -363,11 +381,7 @@ function StageContent({
           </button>
         ) : null)}
 
-      {stage.notes && (
-        <p className="whitespace-pre-wrap rounded-xl border border-border p-3 text-sm text-muted-foreground">
-          {stage.notes}
-        </p>
-      )}
+      <SheetNote icon={StickyNote}>{stage.notes}</SheetNote>
 
       <ConfidentialBlock text={stage.confidential} />
     </div>
@@ -450,11 +464,7 @@ function PlaceContent({
 
       {place.address && <p className="text-sm text-muted-foreground">{place.address}</p>}
 
-      {place.notes && (
-        <p className="whitespace-pre-wrap rounded-xl border border-border p-3 text-sm text-muted-foreground">
-          {place.notes}
-        </p>
-      )}
+      <SheetNote icon={StickyNote}>{place.notes}</SheetNote>
 
       <ConfidentialBlock text={place.confidential} />
 
@@ -550,11 +560,7 @@ function FlightContent({
           {flight.currency ?? '€'}
         </p>
       )}
-      {flight.notes && (
-        <p className="whitespace-pre-wrap rounded-xl border border-border p-3 text-sm text-muted-foreground">
-          {flight.notes}
-        </p>
-      )}
+      <SheetNote icon={StickyNote}>{flight.notes}</SheetNote>
       {flight.airportLocation && <FocusPill onClick={() => onFocus(flight.airportLocation)} />}
     </div>
   );
@@ -826,7 +832,10 @@ export function MobileTripView({
         }
       >
         {trip.description && snap === 'full' && (
-          <p className="mb-3 text-sm text-muted-foreground">{trip.description}</p>
+          <div className="mb-3 flex gap-2 text-sm text-muted-foreground">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+            <p className="min-w-0 flex-1">{trip.description}</p>
+          </div>
         )}
 
         {activePlace && activePlaceStage ? (

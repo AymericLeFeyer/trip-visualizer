@@ -2,7 +2,7 @@ import type { Stage, Trip } from '@shared/types/trip';
 import { nightsLabel } from '@/shared/lib/date';
 import { sortPlacesChronologically } from '@/shared/lib/place';
 import { cn } from '@/shared/lib/cn';
-import { AccommodationBlock, DetailHeader, PlaceLine, StageImage } from './parts';
+import { AccommodationBlock, DetailHeader, NoteText, PlaceLine, StageImage } from './parts';
 import { ConfidentialBlock } from './ConfidentialBlock';
 
 interface StageDetailProps {
@@ -54,12 +54,7 @@ export function StageDetail({ trip, stage, onSelectPlace, onFocus, onClose, comp
               <p className="text-sm text-muted-foreground">Aucun hébergement renseigné.</p>
             )}
 
-            {stage.notes && (
-              <div className="space-y-1">
-                <h3 className="text-sm font-semibold">Notes</h3>
-                <p className="whitespace-pre-wrap text-sm text-muted-foreground">{stage.notes}</p>
-              </div>
-            )}
+            <NoteText>{stage.notes}</NoteText>
 
             <ConfidentialBlock text={stage.confidential} />
           </div>

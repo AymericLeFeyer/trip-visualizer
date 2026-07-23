@@ -2,7 +2,7 @@ import { ArrowRight } from 'lucide-react';
 import type { Stage } from '@shared/types/trip';
 import { TRANSPORT_MODES } from '@/shared/constants/catalog';
 import { formatLongDate } from '@/shared/lib/date';
-import { DetailHeader, InfoLine } from './parts';
+import { DetailHeader, InfoLine, NoteText } from './parts';
 
 interface LegDetailProps {
   stage: Stage;
@@ -43,9 +43,7 @@ export function LegDetail({ stage, nextStage, onFocus, onClose }: LegDetailProps
         <InfoLine label="Distance">{leg.distanceKm != null && `${leg.distanceKm} km`}</InfoLine>
         <InfoLine label="Référence">{leg.reference}</InfoLine>
         <InfoLine label="Prix">{leg.price != null && `${leg.price}${leg.currency ?? '¥'}`}</InfoLine>
-        <InfoLine label="Notes">
-          {leg.notes && <span className="whitespace-pre-wrap">{leg.notes}</span>}
-        </InfoLine>
+        <NoteText>{leg.notes}</NoteText>
       </div>
     </div>
   );

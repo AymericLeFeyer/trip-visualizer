@@ -1,7 +1,7 @@
 import type { Flight } from '@shared/types/trip';
 import type { FlightSide } from '@/domain/trip/services/tripMutations';
 import { formatLongDate } from '@/shared/lib/date';
-import { DetailHeader, InfoLine } from './parts';
+import { DetailHeader, InfoLine, NoteText } from './parts';
 
 const TITLE: Record<FlightSide, string> = {
   outbound: '✈️ Vol aller',
@@ -53,9 +53,7 @@ export function FlightDetail({ side, flight, onFocus, onClose }: FlightDetailPro
         <InfoLine label="Prix">
           {flight.price != null && `${flight.price}${flight.currency ?? '€'}`}
         </InfoLine>
-        <InfoLine label="Notes">
-          {flight.notes && <span className="whitespace-pre-wrap">{flight.notes}</span>}
-        </InfoLine>
+        <NoteText>{flight.notes}</NoteText>
       </div>
     </div>
   );

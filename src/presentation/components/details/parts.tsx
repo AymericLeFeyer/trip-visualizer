@@ -1,5 +1,14 @@
 import type { ReactNode } from 'react';
-import { ChevronRight, ExternalLink, Locate, MapPin, X } from 'lucide-react';
+import {
+  ChevronRight,
+  ExternalLink,
+  KeyRound,
+  Locate,
+  MapPin,
+  StickyNote,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import type { Accommodation, LatLng, Place } from '@shared/types/trip';
 import { PLACE_CATEGORIES } from '@/shared/constants/catalog';
 import { distanceLabel } from '@/shared/lib/geo';
@@ -100,6 +109,28 @@ export function formatPrice(price?: number, currency?: string): string | null {
   return `${price}${currency ?? '€'}`;
 }
 
+/**
+ * Bloc de texte libre (notes, description, modalités…) précédé d'une petite
+ * icône, pour aérer les longs blocs en mode lecture. `null` si vide.
+ */
+export function NoteText({
+  icon: Icon = StickyNote,
+  children,
+  className,
+}: {
+  icon?: LucideIcon;
+  children?: ReactNode;
+  className?: string;
+}) {
+  if (!children) return null;
+  return (
+    <div className={cn('flex gap-2 rounded-md border border-border p-2.5', className)}>
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+      <p className="min-w-0 flex-1 whitespace-pre-wrap text-sm text-muted-foreground">{children}</p>
+    </div>
+  );
+}
+
 export function InfoLine({ label, children }: { label: string; children: ReactNode }) {
   if (!children) return null;
   return (
@@ -144,8 +175,8 @@ export function AccommodationBlock({ acc }: { acc: Accommodation }) {
       <InfoLine label="Prix">
         {acc.price != null && `${acc.price}${acc.currency ?? '€'}`}
       </InfoLine>
-      <InfoLine label="Modalités">{acc.modalities}</InfoLine>
-      <InfoLine label="Notes">{acc.notes}</InfoLine>
+      <NoteText icon={KeyRound}>{acc.modalities}</NoteText>
+      <NoteText>{acc.notes}</NoteText>
       <div className="flex flex-wrap items-center gap-2 pt-1">
         <MapsLink url={acc.googleMapsUrl} />
         <MapsSearchButton query={acc.address || acc.name} />
