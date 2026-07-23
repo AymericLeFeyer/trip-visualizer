@@ -11,12 +11,22 @@ interface StageDetailProps {
   onSelectPlace?: (placeId: string) => void;
   onFocus?: () => void;
   onClose?: () => void;
+  /** Lieu ouvert dans un tiroir enfant → surligné dans la liste. */
+  selectedPlaceId?: string;
   /** Colonne simple (tiroir étroit) au lieu de la grille 2 colonnes. */
   compact?: boolean;
 }
 
 /** Vue détail (lecture seule) d'une étape : hébergement + lieux + notes. */
-export function StageDetail({ trip, stage, onSelectPlace, onFocus, onClose, compact }: StageDetailProps) {
+export function StageDetail({
+  trip,
+  stage,
+  onSelectPlace,
+  onFocus,
+  onClose,
+  selectedPlaceId,
+  compact,
+}: StageDetailProps) {
   const order = trip.stages.findIndex((s) => s.id === stage.id) + 1;
   const nights = nightsLabel(stage.accommodation?.checkInDate, stage.accommodation?.checkOutDate);
   const places = sortPlacesChronologically(stage.places);
@@ -69,6 +79,7 @@ export function StageDetail({ trip, stage, onSelectPlace, onFocus, onClose, comp
                     key={place.id}
                     place={place}
                     origin={stage.accommodation?.location}
+                    selected={place.id === selectedPlaceId}
                     onClick={onSelectPlace ? () => onSelectPlace(place.id) : undefined}
                   />
                 ))}

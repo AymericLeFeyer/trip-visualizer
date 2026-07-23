@@ -33,6 +33,8 @@ interface StageEditorProps {
   onSelectPlace: (stageId: string, placeId: string) => void;
   onFocus?: () => void;
   onClose: () => void;
+  /** Lieu ouvert dans un tiroir enfant → surligné dans la liste. */
+  selectedPlaceId?: string;
   /** Colonne simple (tiroir étroit) au lieu de la grille 2 colonnes. */
   compact?: boolean;
 }
@@ -46,6 +48,7 @@ export function StageEditor({
   onSelectPlace,
   onFocus,
   onClose,
+  selectedPlaceId,
   compact,
 }: StageEditorProps) {
   const acc = stage.accommodation;
@@ -282,9 +285,11 @@ export function StageEditor({
                 key={place.id}
                 className={cn(
                   'flex items-center gap-2 rounded-md border px-2 py-1.5',
-                  place.reserved
-                    ? 'border-amber-300 bg-amber-50/60 dark:border-amber-500/40 dark:bg-amber-500/5'
-                    : 'border-border',
+                  place.id === selectedPlaceId
+                    ? 'border-primary bg-primary/5'
+                    : place.reserved
+                      ? 'border-amber-300 bg-amber-50/60 dark:border-amber-500/40 dark:bg-amber-500/5'
+                      : 'border-border',
                 )}
               >
                 <input

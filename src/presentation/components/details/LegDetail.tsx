@@ -1,8 +1,18 @@
-import { ArrowRight } from 'lucide-react';
+import {
+  ArrowRight,
+  CalendarDays,
+  CircleDot,
+  Clock,
+  Hash,
+  MapPin,
+  Route,
+  Ruler,
+  Wallet,
+} from 'lucide-react';
 import type { Stage } from '@shared/types/trip';
 import { TRANSPORT_MODES } from '@/shared/constants/catalog';
 import { formatLongDate } from '@/shared/lib/date';
-import { DetailHeader, InfoLine, NoteText } from './parts';
+import { DetailHeader, IconLine, NoteText } from './parts';
 
 interface LegDetailProps {
   stage: Stage;
@@ -33,16 +43,20 @@ export function LegDetail({ stage, nextStage, onFocus, onClose }: LegDetailProps
       />
 
       <div className="flex-1 space-y-2 overflow-y-auto p-4 scroll-thin">
-        <InfoLine label="Transport">{mode.label}</InfoLine>
-        <InfoLine label="Départ">{leg.from}</InfoLine>
-        <InfoLine label="Arrivée">{leg.to}</InfoLine>
-        <InfoLine label="Date">{formatLongDate(leg.date)}</InfoLine>
-        <InfoLine label="Horaires">
+        <IconLine icon={Route} title="Transport">{mode.label}</IconLine>
+        <IconLine icon={CircleDot} title="Départ">{leg.from}</IconLine>
+        <IconLine icon={MapPin} title="Arrivée">{leg.to}</IconLine>
+        <IconLine icon={CalendarDays} title="Date">{formatLongDate(leg.date)}</IconLine>
+        <IconLine icon={Clock} title="Horaires">
           {[leg.departureTime, leg.arrivalTime].filter(Boolean).join(' – ')}
-        </InfoLine>
-        <InfoLine label="Distance">{leg.distanceKm != null && `${leg.distanceKm} km`}</InfoLine>
-        <InfoLine label="Référence">{leg.reference}</InfoLine>
-        <InfoLine label="Prix">{leg.price != null && `${leg.price}${leg.currency ?? '¥'}`}</InfoLine>
+        </IconLine>
+        <IconLine icon={Ruler} title="Distance">
+          {leg.distanceKm != null && `${leg.distanceKm} km`}
+        </IconLine>
+        <IconLine icon={Hash} title="Référence">{leg.reference}</IconLine>
+        <IconLine icon={Wallet} title="Prix">
+          {leg.price != null && `${leg.price}${leg.currency ?? '¥'}`}
+        </IconLine>
         <NoteText>{leg.notes}</NoteText>
       </div>
     </div>

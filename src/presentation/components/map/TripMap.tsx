@@ -145,13 +145,20 @@ export function TripMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusTarget?.nonce]);
 
-  // (Ré)appliquer la traduction des labels au chargement et au changement de thème.
+  // (Ré)appliquer la traduction française des labels au changement de thème.
+  // ⚠️ Un changement de thème = react-map-gl fait un `setStyle` → la carte se
+  // recharge en **langue locale**. Il ne faut donc PAS réappliquer sur l'ancien
+  // style (`isStyleLoaded()` renverrait `true` avant le rechargement, et le
+  // français serait aussitôt écrasé) : on attend toujours le prochain `idle`,
+  // qui n'arrive qu'une fois la NOUVELLE style rendue.
   useEffect(() => {
     const map = mapRef.current?.getMap();
     if (!map) return;
     const run = () => applyMapLanguage(map);
-    if (map.isStyleLoaded()) run();
-    else map.once('idle', run);
+    map.once('idle', run);
+    return () => {
+      map.off('idle', run);
+    };
   }, [theme]);
 
   return (

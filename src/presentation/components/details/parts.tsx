@@ -214,11 +214,14 @@ export function AccommodationBlock({ acc }: { acc: Accommodation }) {
 export function PlaceLine({
   place,
   origin,
+  selected,
   onClick,
 }: {
   place: Place;
   /** Point de l'étape (hébergement) pour estimer la distance à vol d'oiseau. */
   origin?: LatLng | null;
+  /** Lieu actuellement ouvert dans un tiroir enfant → surligné (bleu). */
+  selected?: boolean;
   onClick?: () => void;
 }) {
   const distance = distanceLabel(origin, place.location);
@@ -247,9 +250,11 @@ export function PlaceLine({
     </>
   );
 
-  const reservedRing = place.reserved
-    ? 'border-amber-300 bg-amber-50/60 dark:border-amber-500/40 dark:bg-amber-500/5'
-    : 'border-border';
+  const ring = selected
+    ? 'border-primary bg-primary/5'
+    : place.reserved
+      ? 'border-amber-300 bg-amber-50/60 dark:border-amber-500/40 dark:bg-amber-500/5'
+      : 'border-border';
 
   if (onClick) {
     return (
@@ -257,7 +262,11 @@ export function PlaceLine({
         <button
           type="button"
           onClick={onClick}
-          className={`w-full rounded-md border p-2 text-left text-sm transition-colors hover:bg-muted ${reservedRing}`}
+          className={cn(
+            'w-full rounded-md border p-2 text-left text-sm transition-colors',
+            !selected && 'hover:bg-muted',
+            ring,
+          )}
         >
           {inner}
         </button>
@@ -265,5 +274,5 @@ export function PlaceLine({
     );
   }
 
-  return <li className={`rounded-md border p-2 text-sm ${reservedRing}`}>{inner}</li>;
+  return <li className={cn('rounded-md border p-2 text-sm', ring)}>{inner}</li>;
 }

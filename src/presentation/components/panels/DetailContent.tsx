@@ -120,6 +120,11 @@ export function DetailContent({
     const stage = trip.stages.find((s) => s.id === selection.stageId);
     if (!stage) return null;
     const focus = focusHandler(stage.accommodation?.location);
+    // Lieu ouvert dans le tiroir enfant → surligné dans la liste de l'étape.
+    const selectedPlaceId =
+      childSelection?.kind === 'place' && childSelection.stageId === stage.id
+        ? childSelection.placeId
+        : undefined;
     return isAdmin ? (
       <StageEditor
         trip={trip}
@@ -130,6 +135,7 @@ export function DetailContent({
         onSelectPlace={onSelectPlace}
         onFocus={focus}
         onClose={onClose}
+        selectedPlaceId={selectedPlaceId}
         compact={compact}
       />
     ) : (
@@ -139,6 +145,7 @@ export function DetailContent({
         onSelectPlace={(placeId) => onSelectPlace(stage.id, placeId)}
         onFocus={focus}
         onClose={onClose}
+        selectedPlaceId={selectedPlaceId}
         compact={compact}
       />
     );
